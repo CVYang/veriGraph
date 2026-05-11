@@ -1,0 +1,21 @@
+{
+  "module_name": "imm_gen",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "critical",
+      "line": 29,
+      "description": "J-type immediate sign-extension width mismatch: J-type immediate has 21 bits of actual data (instr[31]+instr[19:12]+instr[20]+instr[30:21]+1'b0 = 1+8+1+10+1 = 21 bits), requiring 11 bits of sign extension for 32-bit result. Current code uses 20 bits of sign extension, producing a 33-bit concatenation that gets truncated, causing incorrect immediate values for JAL instructions with negative offsets.",
+      "fix_suggestion": "Change line 29 from `assign j_imm = {{20{instr[31]}}, instr[31], instr[19:12],` to `assign j_imm = {{11{instr[31]}}, instr[31], instr[19:12],`"
+    },
+    {
+      "severity": "critical",
+      "line": 22,
+      "description": "B-type immediate sign-extension width mismatch: B-type immediate has 13 bits of actual data (instr[31]+instr[7]+instr[30:25]+instr[11:8]+1'b0 = 1+1+6+4+1 = 13 bits), requiring 19 bits of sign extension for 32-bit result. Current code uses 20 bits of sign extension, producing a 33-bit concatenation that gets truncated, causing incorrect branch offsets for negative branches.",
+      "fix_suggestion": "Change line 22 from `assign b_imm = {{20{instr[31]}}, instr[31], instr[7],` to `assign b_imm = {{19{instr[31]}}, instr[31], instr[7],`"
+    }
+  ],
+  "summary": "The imm_gen module has two critical bugs in sign-extension width calculations. The J-type and B-type immediates use 20 bits of sign extension when they should use 11 and 19 bits respectively, due to incorrect accounting of the actual immediate field widths (21 bits for J-type, 13 bits for B-type). This results in 33-bit concatenations that get truncated to 32 bits, causing incorrect immediate values for JAL instructions and branch instructions with negative offsets. I-type (12 bits), S-type (12 bits), and U-type (20 bits) immediate extractions are correct. The opcode-based case statement coverage and default case handling are proper.",
+  "stage": "review_imm_gen",
+  "timestamp": "2026-05-10T16:40:59.249851"
+}

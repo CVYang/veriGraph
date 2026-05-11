@@ -1,0 +1,33 @@
+{
+  "module_name": "wb_stage",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "critical",
+      "line": 38,
+      "description": "wb_wb_sel=2'b10 should select PC+4 for JAL/JALR instructions, but the code incorrectly selects wb_alu_result instead. According to the specification, this case should write back PC+4 (link register value), not the ALU result.",
+      "fix_suggestion": "Change line 38 from '2'b10: selected_data = wb_alu_result;' to include a dedicated PC+4 input or ensure the ALU result input carries PC+4 for this case. If a separate pc_plus4 input is needed, add 'input wire [31:0] wb_pc_plus4' and use: 2'b10: selected_data = wb_pc_plus4;"
+    },
+    {
+      "severity": "high",
+      "line": 42,
+      "description": "The reg_file instance has unconnected rs1_data and rs2_data ports. This causes synthesis warnings about undriven ports and wastes area on unnecessary read ports.",
+      "fix_suggestion": "Either connect the read ports to valid signals if read capability is needed, or remove the read port parameters entirely from the reg_file instantiation if this module only writes."
+    },
+    {
+      "severity": "medium",
+      "line": 28,
+      "description": "The combinational always block assigns to reg outputs (rf_waddr, rf_wdata, rf_we, wb_result, selected_data). While this works, it creates a latch inferred for these signals at the module boundary if synthesis interprets this as pipelined logic. This is especially concerning since these signals feed into a clocked reg_file instance.",
+      "fix_suggestion": "If wb_stage is truly combinational (data is already pipelined from previous stage), this is acceptable. However, if this should be pipelined, add a clocked always block with non-blocking assignments. Ensure clear distinction between combinational muxing and register outputs."
+    },
+    {
+      "severity": "low",
+      "line": 28,
+      "description": "wb_valid is used as a gating condition but the module has no clock input in the always block sensitivity list, making wb_valid effectively a combinational enable rather than a pipeline valid bit.",
+      "fix_suggestion": "Clarify whether wb_valid should gate writes combinatorially (current implementation) or should be part of a pipeline register. If the latter, add @(posedge clk) and handle reset properly."
+    }
+  ],
+  "summary": "The wb_stage module has a critical functional bug where wb_wb_sel=2'b10 (intended for JAL/JALR PC+4 writeback) incorrectly selects wb_alu_result instead of PC+4. The register file instance has unused read ports causing wasted area and warnings. The combinational nature of the write-back logic feeding a clocked register file is unconventional and should be verified against the overall pipeline architecture. The issue count is low (4), but the PC+4 selection bug is a correctness failure against the specification.",
+  "stage": "review_wb_stage",
+  "timestamp": "2026-05-10T17:01:25.248774"
+}

@@ -1,0 +1,135 @@
+{
+  "module_name": "ex_mem_reg",
+  "type": "pipeline_register",
+  "description": "Pipeline register between EX and MEM stages",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "flush",
+      "direction": "input",
+      "width": 1,
+      "description": "Flush signal"
+    },
+    {
+      "name": "ex_alu_result",
+      "direction": "input",
+      "width": 32,
+      "description": "ALU result from EX"
+    },
+    {
+      "name": "ex_mem_wdata",
+      "direction": "input",
+      "width": 32,
+      "description": "Store data from EX"
+    },
+    {
+      "name": "ex_rd_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Destination register address from EX"
+    },
+    {
+      "name": "ex_mem_read",
+      "direction": "input",
+      "width": 1,
+      "description": "Load enable from EX"
+    },
+    {
+      "name": "ex_mem_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Store enable from EX"
+    },
+    {
+      "name": "ex_funct3",
+      "direction": "input",
+      "width": 3,
+      "description": "funct3 from EX"
+    },
+    {
+      "name": "ex_reg_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Register write enable from EX"
+    },
+    {
+      "name": "ex_wb_sel",
+      "direction": "input",
+      "width": 2,
+      "description": "Write-back select from EX"
+    },
+    {
+      "name": "ex_valid",
+      "direction": "input",
+      "width": 1,
+      "description": "Valid from EX"
+    },
+    {
+      "name": "mem_alu_result",
+      "direction": "output",
+      "width": 32,
+      "description": "ALU result to MEM"
+    },
+    {
+      "name": "mem_wdata",
+      "direction": "output",
+      "width": 32,
+      "description": "Store data to MEM"
+    },
+    {
+      "name": "mem_rd_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Destination register address to MEM"
+    },
+    {
+      "name": "mem_read",
+      "direction": "output",
+      "width": 1,
+      "description": "Load enable to MEM"
+    },
+    {
+      "name": "mem_write",
+      "direction": "output",
+      "width": 1,
+      "description": "Store enable to MEM"
+    },
+    {
+      "name": "mem_funct3",
+      "direction": "output",
+      "width": 3,
+      "description": "funct3 to MEM"
+    },
+    {
+      "name": "mem_reg_write",
+      "direction": "output",
+      "width": 1,
+      "description": "Register write enable to MEM"
+    },
+    {
+      "name": "mem_wb_sel",
+      "direction": "output",
+      "width": 2,
+      "description": "Write-back select to MEM"
+    },
+    {
+      "name": "mem_valid",
+      "direction": "output",
+      "width": 1,
+      "description": "Valid to MEM"
+    }
+  ],
+  "functionality": "Captures ALU result, store data, destination register, and memory/control signals from the EX stage. On reset, clears outputs. On flush, the valid bit is cleared to insert a bubble. No stall input; data passes on every clock edge (unless flushed).",
+  "dependencies": []
+}

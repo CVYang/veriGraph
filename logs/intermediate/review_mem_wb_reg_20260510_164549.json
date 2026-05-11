@@ -1,0 +1,8 @@
+{
+  "module_name": "mem_wb_reg",
+  "passed": true,
+  "issues": [],
+  "summary": "The mem_wb_reg module is well-designed and correctly implements a pipeline register between MEM and WB stages. The code uses proper non-blocking assignments, has correct async reset handling with flush functionality, no latch inference issues, all port widths are consistent, and adheres to the module specification. The priority of async reset over flush condition is appropriate for synthesis. No critical, high, medium, or low severity issues identified.",
+  "stage": "review_mem_wb_reg",
+  "timestamp": "2026-05-10T16:45:49.368142"
+}

@@ -1,0 +1,8 @@
+{
+  "module_name": "control_unit",
+  "passed": true,
+  "issues": [],
+  "summary": "The control_unit module is well-implemented with no identified issues. All control signals are properly generated for the covered instruction types (R, I, S, B, U, J). Default values are correctly set at the beginning of the always block to prevent latch inference. All case statements are complete with proper defaults. Combinational logic correctly uses blocking assignments. Signal widths are consistent. The funct3 passthrough is properly connected. AUIPC correctly sets alu_src=1 to use immediate+PC for the ALU operation. The module correctly identifies instruction types and generates appropriate control signals for branch flags, jump flags, and jr flags as specified.",
+  "stage": "review_control_unit",
+  "timestamp": "2026-05-10T16:42:30.749503"
+}

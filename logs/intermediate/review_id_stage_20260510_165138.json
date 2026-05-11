@@ -1,0 +1,39 @@
+{
+  "module_name": "id_stage",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "critical",
+      "line": 71,
+      "description": "Empty port connection 'funct3()' in control_unit instantiation. The funct3 signal is important for instruction decoding and should be connected to the control_unit.",
+      "fix_suggestion": "Connect funct3 to the control_unit: .funct3(funct3) or .funct3(id_instr[14:12])"
+    },
+    {
+      "severity": "high",
+      "line": 78,
+      "description": "Potential incorrect flush behavior: when flush is asserted, only id_alu_src is set to 1'b1 while all other control signals keep their default values (0). This may not properly disable other pipeline operations during flush.",
+      "fix_suggestion": "Consider setting all control signals to safe disabled values during flush, or ensure flush properly gates all downstream logic. Alternatively, explicitly set all control signals to 0 during flush."
+    },
+    {
+      "severity": "medium",
+      "line": 91,
+      "description": "Combinational path from rf_rs1_data through id_pc_target to id_pc_redirect. This creates a direct path that could cause timing issues in long combinational logic.",
+      "fix_suggestion": "Consider registering the pc_target calculation or ensuring the path delay is acceptable for your target frequency."
+    },
+    {
+      "severity": "medium",
+      "line": 94,
+      "description": "JALR target calculation assumes gen_imm[11:0] contains the correct offset. This relies on imm_gen properly generating I-type immediates with offset in bits [11:0]. Verify imm_gen handles all instruction types correctly.",
+      "fix_suggestion": "Add assertion or documentation confirming that gen_imm is sign-extended I-type immediate for JALR instructions."
+    },
+    {
+      "severity": "low",
+      "line": 50,
+      "description": "id_valid input is declared but never used in the module. Control signals are always generated based on id_instr without gating by id_valid.",
+      "fix_suggestion": "Consider using id_valid to disable control signal generation when instruction is not valid, or add comment explaining why it's not needed."
+    }
+  ],
+  "summary": "The id_stage module has a critical issue with an empty funct3 port connection to the control_unit, which could prevent proper instruction decoding. The flush logic only sets id_alu_src without explicitly disabling other control signals, which may lead to unintended pipeline behavior. Combinational paths through the PC target calculation should be reviewed for timing. The module otherwise follows proper RTL practices with explicit default assignments to prevent latch inference, correct immediate generation for all instruction types, and appropriate JAL/JALR target calculation.",
+  "stage": "review_id_stage",
+  "timestamp": "2026-05-10T16:51:38.883199"
+}

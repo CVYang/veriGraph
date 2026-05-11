@@ -1,0 +1,27 @@
+{
+  "module_name": "if_stage",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "critical",
+      "line": 51,
+      "description": "if_valid is deasserted (set to 0) whenever stall is high. According to the specification, stalls should hold the output, meaning if_valid should retain its previous value during stall cycles. This causes the fetched instruction to be invalidated during a stall, resulting in incorrect pipeline operation.",
+      "fix_suggestion": "Modify the logic to only update if_valid on non-stall cycles or use a clock enable. When stall is asserted, the outputs if_pc, if_instr, and if_valid should hold their previous values. For example, add a condition: if (!stall) begin if_pc <= pc; if_instr <= imem_rdata; if_valid <= !flush; end (with proper reset). This ensures valid is not cleared by stall."
+    },
+    {
+      "severity": "medium",
+      "line": 23,
+      "description": "In pc_next logic, stall is given priority over pc_redirect. If both stall and pc_redirect are asserted, the PC will not be updated to the target, potentially delaying a branch target update. The specification does not clearly define the expected behavior for simultaneous stall and redirect, but typical processors prioritize redirect over stall to ensure correct target fetch.",
+      "fix_suggestion": "Consider prioritizing pc_redirect over stall in the combinational logic, or ensure that the controller never asserts both simultaneously. If both may occur, reorder the priority: check pc_redirect before stall."
+    },
+    {
+      "severity": "low",
+      "line": 49,
+      "description": "Output registers if_pc, if_instr, and if_valid are updated unconditionally on every clock cycle (except reset). During stall, they capture potentially changing signals, which may increase dynamic power and could latch glitches if the instruction memory data is not stable. Using a stall-based enable improves efficiency and robustness.",
+      "fix_suggestion": "Use a mux or enable condition to hold the output values when stall is asserted, e.g., if (!stall) ... else hold values."
+    }
+  ],
+  "summary": "The module fails due to critical incorrect handling of if_valid during stall, which invalidates the instruction. Additionally, there are concerns about stall priority over redirect and missing enable for pipeline output registers.",
+  "stage": "review_if_stage",
+  "timestamp": "2026-05-10T20:59:13.207143"
+}

@@ -1,0 +1,85 @@
+{
+  "module_name": "if_stage",
+  "type": "pipeline_stage",
+  "description": "Instruction fetch stage - generates PC and fetches from IMEM",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "stall",
+      "direction": "input",
+      "width": 1,
+      "description": "Stall IF (from hazard_unit)"
+    },
+    {
+      "name": "flush",
+      "direction": "input",
+      "width": 1,
+      "description": "Flush IF (from branch/jump)"
+    },
+    {
+      "name": "pc_redirect",
+      "direction": "input",
+      "width": 1,
+      "description": "PC redirect enable (from EX for branch, from ID for JAL/JALR)"
+    },
+    {
+      "name": "pc_target",
+      "direction": "input",
+      "width": 32,
+      "description": "New PC value when redirecting"
+    },
+    {
+      "name": "imem_addr",
+      "direction": "output",
+      "width": 32,
+      "description": "Instruction memory address"
+    },
+    {
+      "name": "imem_rdata",
+      "direction": "input",
+      "width": 32,
+      "description": "Instruction memory read data"
+    },
+    {
+      "name": "imem_req",
+      "direction": "output",
+      "width": 1,
+      "description": "Instruction memory request"
+    },
+    {
+      "name": "if_pc",
+      "direction": "output",
+      "width": 32,
+      "description": "Current PC sent to IF/ID pipeline register"
+    },
+    {
+      "name": "if_instr",
+      "direction": "output",
+      "width": 32,
+      "description": "Fetched instruction sent to IF/ID pipeline register"
+    },
+    {
+      "name": "if_valid",
+      "direction": "output",
+      "width": 1,
+      "description": "Instruction valid signal sent to IF/ID pipeline register"
+    }
+  ],
+  "functionality": "Manages the program counter (PC) to fetch instructions from the instruction memory. On reset, PC is initialized; otherwise, on each cycle without stall, the PC updates to pc_target if pc_redirect is asserted (branches or jumps), or increments by 4. Stalls hold the PC and output; flushes invalidate the current instruction (if_valid = 0). Outputs the current PC, fetched instruction, and a valid flag to the IF/ID register.",
+  "dependencies": [
+    "hazard_unit",
+    "id_stage",
+    "ex_stage"
+  ]
+}

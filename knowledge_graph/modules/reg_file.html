@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>reg_file — VeriGraph Module Detail</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:#1E1E1E;color:#D4D4D4;padding:20px}
+.container{max-width:1200px;margin:0 auto}
+.header{background:#252526;padding:20px;border-radius:8px;margin-bottom:20px}
+.header h1{color:#569CD6;font-size:24px}
+.header .meta{color:#808080;margin-top:8px;font-size:13px}
+.status{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;margin-left:10px}
+.status.completed{background:#1B5E20;color:#4CAF50}
+.status.failed{background:#B71C1C;color:#EF5350}
+.status.pending{background:#424242;color:#9E9E9E}
+.code-block{background:#1E1E1E;border:1px solid #333;border-radius:8px;overflow:hidden;margin-bottom:20px}
+.code-header{background:#2D2D2D;padding:10px 15px;color:#808080;font-size:13px;border-bottom:1px solid #333}
+.code-content{padding:15px;overflow-x:auto;white-space:pre;font-size:13px;line-height:1.6}
+.nav{display:flex;gap:10px;margin-bottom:20px}
+.nav a{color:#569CD6;text-decoration:none;padding:8px 16px;background:#252526;border-radius:4px;font-size:13px}
+.nav a:hover{background:#333}
+.back{margin-top:20px}
+.back a{color:#808080;text-decoration:none;font-size:13px}
+</style></head>
+<body>
+<div class="container">
+<div class="nav">
+    <a href="knowledge_graph.html">Graph</a>
+    <a href="module_list.html">Module List</a>
+</div>
+<div class="header">
+    <h1>reg_file<span class="status completed">COMPLETED</span></h1>
+    <div class="meta">Category: Functional Unit | 32x32-bit register file (x0=0)</div>
+</div>
+<div class="code-block">
+    <div class="code-header">reg_file.v — 1876 characters</div>
+    <div class="code-content">module reg_file (
+    input wire clk,
+    input wire rst_n,
+    input wire [4:0] rs1_addr,
+    input wire [4:0] rs2_addr,
+    output reg [31:0] rs1_data,
+    output reg [31:0] rs2_data,
+    input wire [4:0] waddr,
+    input wire [31:0] wdata,
+    input wire we
+);
+
+    // Register file storage (31 registers for x1-x31, x0 is hardwired to 0)
+    reg [31:0] rf [1:31];
+
+    // Extract bit-selects for use in combinational block
+    wire [4:0] waddr_bits;
+    assign waddr_bits = waddr;
+
+    // Asynchronous read ports (combinational)
+    // Read data is available immediately based on read address
+    always @(*) begin
+        // Read port 1
+        if (rs1_addr == 5'd0) begin
+            rs1_data = 32'h0;
+        end else if (rs1_addr == waddr_bits &amp;&amp; we) begin
+            // Write-first behavior: if writing to same address, forward write data
+            rs1_data = wdata;
+        end else begin
+            rs1_data = rf[rs1_addr[4:0]];
+        end
+
+        // Read port 2
+        if (rs2_addr == 5'd0) begin
+            rs2_data = 32'h0;
+        end else if (rs2_addr == waddr_bits &amp;&amp; we) begin
+            // Write-first behavior: if writing to same address, forward write data
+            rs2_data = wdata;
+        end else begin
+            rs2_data = rf[rs2_addr[4:0]];
+        end
+    end
+
+    // Synchronous write port
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            // Reset: initialize all registers to zero
+            integer i;
+            for (i = 1; i &lt;= 31; i = i + 1) begin
+                rf[i] &lt;= 32'h0;
+            end
+        end else begin
+            // Write on positive clock edge when write enable is asserted
+            // x0 (address 0) is hardwired to zero and ignores writes
+            if (we &amp;&amp; waddr != 5'd0) begin
+                rf[waddr] &lt;= wdata;
+            end
+        end
+    end
+
+endmodule</div>
+</div>
+<div class="back"><a href="javascript:history.back()">Back</a></div>
+</div>
+</body></html>

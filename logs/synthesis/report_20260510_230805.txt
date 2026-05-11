@@ -1,0 +1,37 @@
+
+22. Printing statistics.
+
+=== rv32i_core ===
+
+   Number of wires:                747
+   Number of wire bits:           7222
+   Number of public wires:         434
+   Number of public wire bits:    5819
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                444
+     $add                            4
+     $adff                          31
+     $adffe                         46
+     $and                            1
+     $eq                           152
+     $ge                             2
+     $logic_and                     19
+     $logic_not                     19
+     $logic_or                       2
+     $lt                             2
+     $mux                           94
+     $not                            3
+     $or                             3
+     $pmux                          17
+     $reduce_and                    31
+     $reduce_bool                    4
+     $reduce_or                      6
+     $sdff                           3
+     $shl                            1
+     $shr                            1
+     $sshr                           1
+     $sub                            1
+     $xor                            1
+

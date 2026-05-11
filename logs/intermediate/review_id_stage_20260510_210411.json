@@ -1,0 +1,15 @@
+{
+  "module_name": "id_stage",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "high",
+      "line": null,
+      "description": "JALR target address calculation is incorrect. The code uses bitfield concatenation {rf_rs1_data[31:12], gen_imm[11:0]} instead of adding the sign-extended immediate to the register value and then clearing the least significant bit. This violates the RISC-V JALR specification and will result in wrong branch targets.",
+      "fix_suggestion": "Replace the concatenation with an addition and a bitwise AND to force bit 0 to zero: pc_target_next = (rf_rs1_data + gen_imm) & 32'hFFFFFFFE;"
+    }
+  ],
+  "summary": "The module contains a critical functional bug in the JALR target address generation, making it non-compliant with RISC-V JALR semantics. Other aspects such as combinational logic, reset handling, and output assignments appear correct.",
+  "stage": "review_id_stage",
+  "timestamp": "2026-05-10T21:04:11.852597"
+}

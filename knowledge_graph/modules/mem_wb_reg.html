@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>mem_wb_reg — VeriGraph Module Detail</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:#1E1E1E;color:#D4D4D4;padding:20px}
+.container{max-width:1200px;margin:0 auto}
+.header{background:#252526;padding:20px;border-radius:8px;margin-bottom:20px}
+.header h1{color:#569CD6;font-size:24px}
+.header .meta{color:#808080;margin-top:8px;font-size:13px}
+.status{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;margin-left:10px}
+.status.completed{background:#1B5E20;color:#4CAF50}
+.status.failed{background:#B71C1C;color:#EF5350}
+.status.pending{background:#424242;color:#9E9E9E}
+.code-block{background:#1E1E1E;border:1px solid #333;border-radius:8px;overflow:hidden;margin-bottom:20px}
+.code-header{background:#2D2D2D;padding:10px 15px;color:#808080;font-size:13px;border-bottom:1px solid #333}
+.code-content{padding:15px;overflow-x:auto;white-space:pre;font-size:13px;line-height:1.6}
+.nav{display:flex;gap:10px;margin-bottom:20px}
+.nav a{color:#569CD6;text-decoration:none;padding:8px 16px;background:#252526;border-radius:4px;font-size:13px}
+.nav a:hover{background:#333}
+.back{margin-top:20px}
+.back a{color:#808080;text-decoration:none;font-size:13px}
+</style></head>
+<body>
+<div class="container">
+<div class="nav">
+    <a href="knowledge_graph.html">Graph</a>
+    <a href="module_list.html">Module List</a>
+</div>
+<div class="header">
+    <h1>mem_wb_reg<span class="status completed">COMPLETED</span></h1>
+    <div class="meta">Category: Pipeline Register | MEM/WB pipeline register</div>
+</div>
+<div class="code-block">
+    <div class="code-header">mem_wb_reg.v — 1167 characters</div>
+    <div class="code-content">module mem_wb_reg (
+    input wire clk,
+    input wire rst_n,
+    input wire flush,
+    input wire [31:0] mem_rdata,
+    input wire [31:0] mem_alu_out,
+    input wire [4:0] mem_rd_addr,
+    input wire mem_reg_write,
+    input wire [1:0] mem_wb_sel,
+    input wire mem_valid,
+    output reg [31:0] wb_mem_rdata,
+    output reg [31:0] wb_alu_result,
+    output reg [4:0] wb_rd_addr,
+    output reg wb_reg_write,
+    output reg [1:0] wb_wb_sel,
+    output reg wb_valid
+);
+
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        wb_mem_rdata &lt;= 32'h0;
+        wb_alu_result &lt;= 32'h0;
+        wb_rd_addr &lt;= 5'h0;
+        wb_reg_write &lt;= 1'b0;
+        wb_wb_sel &lt;= 2'b0;
+        wb_valid &lt;= 1'b0;
+    end else if (flush) begin
+        wb_mem_rdata &lt;= 32'h0;
+        wb_alu_result &lt;= 32'h0;
+        wb_rd_addr &lt;= 5'h0;
+        wb_reg_write &lt;= 1'b0;
+        wb_wb_sel &lt;= 2'b0;
+        wb_valid &lt;= 1'b0;
+    end else begin
+        wb_mem_rdata &lt;= mem_rdata;
+        wb_alu_result &lt;= mem_alu_out;
+        wb_rd_addr &lt;= mem_rd_addr;
+        wb_reg_write &lt;= mem_reg_write;
+        wb_wb_sel &lt;= mem_wb_sel;
+        wb_valid &lt;= mem_valid;
+    end
+end
+
+endmodule</div>
+</div>
+<div class="back"><a href="javascript:history.back()">Back</a></div>
+</div>
+</body></html>

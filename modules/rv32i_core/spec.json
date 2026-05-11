@@ -1,0 +1,90 @@
+{
+  "module_name": "rv32i_core",
+  "type": "top",
+  "description": "Top-level wrapper instantiating all submodules and connecting pipeline stages",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "imem_addr",
+      "direction": "output",
+      "width": 32,
+      "description": "Instruction memory address"
+    },
+    {
+      "name": "imem_rdata",
+      "direction": "input",
+      "width": 32,
+      "description": "Instruction memory read data"
+    },
+    {
+      "name": "imem_req",
+      "direction": "output",
+      "width": 1,
+      "description": "Instruction memory request"
+    },
+    {
+      "name": "dmem_addr",
+      "direction": "output",
+      "width": 32,
+      "description": "Data memory address"
+    },
+    {
+      "name": "dmem_wdata",
+      "direction": "output",
+      "width": 32,
+      "description": "Data memory write data"
+    },
+    {
+      "name": "dmem_rdata",
+      "direction": "input",
+      "width": 32,
+      "description": "Data memory read data"
+    },
+    {
+      "name": "dmem_req",
+      "direction": "output",
+      "width": 1,
+      "description": "Data memory request"
+    },
+    {
+      "name": "dmem_we",
+      "direction": "output",
+      "width": 1,
+      "description": "Data memory write enable (1=write, 0=read)"
+    },
+    {
+      "name": "dmem_be",
+      "direction": "output",
+      "width": 4,
+      "description": "Data memory byte enable"
+    }
+  ],
+  "functionality": "Instantiates and interconnects the IF, ID, EX, MEM, WB pipeline stages, register file, ALU, immediate generator, control unit, hazard unit, and four pipeline registers to form a complete RV32I single-issue in-order core. Connects all stage outputs/inputs to pipeline registers and control signals between hazard unit and stages. Provides direct interfaces to instruction and data memories (single-cycle).",
+  "dependencies": [
+    "if_stage",
+    "id_stage",
+    "ex_stage",
+    "mem_stage",
+    "wb_stage",
+    "reg_file",
+    "alu",
+    "imm_gen",
+    "control_unit",
+    "hazard_unit",
+    "if_id_reg",
+    "id_ex_reg",
+    "ex_mem_reg",
+    "mem_wb_reg"
+  ]
+}

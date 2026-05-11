@@ -4,15 +4,15 @@ agents:
   retry_delay: 5
 
 llm:
-  provider: minimax
-  model: MiniMax-M2.7
+  provider: DeepSeek
+  model: deepseek-v4-pro
   temperature: 0.7
   max_tokens: 128000
 
 rtl:
   output_dir: ./output/rtl
   indent: "  "
-  line_width: 120
+  line_width: 512
 
 verification:
   test_dir: ./output/tests

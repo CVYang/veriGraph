@@ -1,0 +1,8 @@
+{
+  "module_name": "hazard_unit",
+  "passed": true,
+  "issues": [],
+  "summary": "Code review passed. The hazard_unit module correctly implements load-use hazard detection with proper stall signals (stall_if, stall_id), control hazard handling with flush signals (flush_if, flush_id), and forwarding logic with correct MEM > WB priority. The forwarding always block has proper default assignments (2'b00) before conditional checks, preventing latch inference. No width mismatches detected (5-bit addresses, 32-bit data, 2-bit select signals). Combinational design is synthesis-friendly. All outputs have single drivers via assign statements or one always block. The forwarding logic correctly checks for non-zero registers (r0) and implements independent forwarding selection for both ALU operands A and B.",
+  "stage": "review_hazard_unit",
+  "timestamp": "2026-05-10T16:48:25.643038"
+}

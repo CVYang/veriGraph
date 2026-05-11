@@ -1,0 +1,15 @@
+{
+  "module_name": "wb_stage",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "critical",
+      "line": 42,
+      "description": "The reg_file is instantiated inside the wb_stage module. This creates a separate register file instance within the pipeline stage, leading to multiple register file instances across the processor. Read and write operations will be disconnected, breaking the shared register file architecture and causing incorrect functionality.",
+      "fix_suggestion": "Remove the reg_file instantiation from wb_stage. The write-back stage should only generate the write port signals (rf_waddr, rf_wdata, rf_we) and output them. A single reg_file instance should be instantiated at the top level and connected to these outputs."
+    }
+  ],
+  "summary": "The combinational logic for result selection and write gating is correct, but the module incorrectly embeds a register file instance. This will cause multiple register file instances and corrupt processor state. The reg_file instantiation must be removed to adhere to the specification of outputting write signals to an external register file.",
+  "stage": "review_wb_stage",
+  "timestamp": "2026-05-10T21:19:33.290114"
+}

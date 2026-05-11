@@ -1,0 +1,83 @@
+{
+  "module_name": "wb_stage",
+  "type": "pipeline_stage",
+  "description": "Write-back stage - writes result to register file",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "wb_mem_rdata",
+      "direction": "input",
+      "width": 32,
+      "description": "Load data from MEM/WB register"
+    },
+    {
+      "name": "wb_alu_result",
+      "direction": "input",
+      "width": 32,
+      "description": "ALU result from MEM/WB register"
+    },
+    {
+      "name": "wb_rd_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Destination register address from MEM/WB"
+    },
+    {
+      "name": "wb_reg_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Register write enable from MEM/WB"
+    },
+    {
+      "name": "wb_wb_sel",
+      "direction": "input",
+      "width": 2,
+      "description": "Write-back select from MEM/WB (00=ALU, 01=MEM, 10=PC+4)"
+    },
+    {
+      "name": "wb_valid",
+      "direction": "input",
+      "width": 1,
+      "description": "Valid bit from MEM/WB"
+    },
+    {
+      "name": "rf_waddr",
+      "direction": "output",
+      "width": 5,
+      "description": "Register file write address"
+    },
+    {
+      "name": "rf_wdata",
+      "direction": "output",
+      "width": 32,
+      "description": "Register file write data"
+    },
+    {
+      "name": "rf_we",
+      "direction": "output",
+      "width": 1,
+      "description": "Register file write enable"
+    },
+    {
+      "name": "wb_result",
+      "direction": "output",
+      "width": 32,
+      "description": "Final write-back result (forwarded to hazard_unit)"
+    }
+  ],
+  "functionality": "Selects the final result from either the ALU output, memory load data, or PC+4 based on wb_wb_sel. If wb_reg_write is asserted and the instruction is valid, writes the selected result to the register file at wb_rd_addr. Outputs the write address, data, and enable to the register file, and also forwards the final result to the hazard unit for data forwarding to earlier stages.",
+  "dependencies": [
+    "reg_file"
+  ]
+}

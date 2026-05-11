@@ -1,0 +1,21 @@
+{
+  "module_name": "if_stage",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "medium",
+      "line": null,
+      "description": "Non-standard reset handling in combinational always block: pc_next is assigned to 0 whenever rst_n is low, which overrides other conditions (stall, pc_redirect). This is unusual as reset conditions are typically handled only in sequential (clocked) always blocks. While functionally correct (pc only updates on clock edges), this pattern could cause confusion and is not common in pipeline designs.",
+      "fix_suggestion": "Remove the reset condition from the combinational always block. The reset logic should be handled in the sequential always block. Replace 'if (!rst_n) begin pc_next = 32'h0; end else' with just the else-if chain for stall and pc_redirect conditions."
+    },
+    {
+      "severity": "medium",
+      "line": null,
+      "description": "Unclear priority handling when stall and pc_redirect are both asserted: The current logic prioritizes stall over redirect (pc_next = pc when stall=1, regardless of pc_redirect). If the hazard unit can assert both signals simultaneously (e.g., redirecting to a branch target while also stalling), the redirect may be ignored for that cycle.",
+      "fix_suggestion": "Clarify the intended behavior. If redirect should take priority during a redirect cycle (even when stalling), change the priority: 'else if (pc_redirect) begin pc_next = pc_target; end else if (stall) begin pc_next = pc; end'"
+    }
+  ],
+  "summary": "The if_stage module has two medium-severity issues related to non-standard coding patterns. The combinational always block has unusual reset handling that assigns pc_next=0 whenever rst_n is low, overriding other logic. This works correctly but is not typical for pipeline stages. Additionally, the priority between stall and pc_redirect when both are asserted is not clearly documented - the current code holds PC when stalled, ignoring any concurrent redirect. The core functionality (PC generation, increment, stall/redirect handling, instruction fetch signaling) appears correct. The if_valid logic correctly uses both stall and flush signals. No critical bugs, latch inference, or width mismatches detected.",
+  "stage": "review_if_stage",
+  "timestamp": "2026-05-10T16:50:40.787889"
+}

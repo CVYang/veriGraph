@@ -1,0 +1,45 @@
+{
+  "module_name": "ex_stage",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "critical",
+      "line": null,
+      "description": "Unsigned branch conditions for BLTU (funct3=110) and BGEU (funct3=111) incorrectly use alu_result[31] (the sign bit) to determine branch outcome. This does not correctly evaluate unsigned less-than or greater-than-or-equal, as it ignores carry/borrow from the ALU subtraction. This will cause misprediction for all unsigned branches.",
+      "fix_suggestion": "Use a dedicated unsigned less-than signal from the ALU (e.g., from a sub-comparator) or implement proper unsigned comparison logic. For example, for BLTU: take_branch = (alu_result == 32'b0) ? 1'b0 : (alu_a < alu_b) using a separate comparator, or rely on a carry-out flag. For BGEU, use the inverse."
+    },
+    {
+      "severity": "critical",
+      "line": null,
+      "description": "JAL (ex_jump) target incorrectly set to alu_result instead of PC + immediate (pc_plus_imm). The code groups all jumps (ex_jump | ex_jr) and assigns branch_target = alu_result; for JAL the target must be pc_plus_imm, not the ALU result.",
+      "fix_suggestion": "Separate handling: if (ex_jump) branch_target = pc_plus_imm; else if (ex_jr) branch_target = alu_result; else if (ex_branch) branch_target = pc_plus_imm; else branch_target = 0; and set branch_taken = 1 for both ex_jump and ex_jr."
+    },
+    {
+      "severity": "critical",
+      "line": null,
+      "description": "Store data (ex_mem_wdata) is assigned directly from ex_rs2_data without any forwarding, causing data hazards if a store instruction's rs2 source depends on a recent ALU or memory result not yet written to the register file. This violates the requirement to resolve data hazards via forwarding.",
+      "fix_suggestion": "Use the forwarded rs2 value (alu_b_raw) for ex_mem_wdata instead of ex_rs2_data. Replace both assignments with: ex_mem_wdata = alu_b_raw;"
+    },
+    {
+      "severity": "high",
+      "line": null,
+      "description": "Signed branch conditions for BLT (funct3=100) and BGE (funct3=101) use only the sign bit of the ALU result (alu_result[31]) and zero flag. This is insufficient if the subtraction overflows; without considering the overflow flag, signed comparisons may be evaluated incorrectly (e.g., a < b when a negative, b positive with overflow).",
+      "fix_suggestion": "Either have the ALU provide a dedicated signed-less-than flag (e.g., based on a comparator) or include the overflow flag in the condition logic (e.g., for BLT: take_branch = (result_negative ^ overflow) & ~result_zero). The ALU must supply an overflow output."
+    },
+    {
+      "severity": "medium",
+      "line": null,
+      "description": "Inputs clk and rst_n are declared but never used in the module. If the design intent was to have registered outputs (pipeline stage with sequential elements), the missing always@(posedge clk) block and reset logic constitute a critical functional gap. If the stage is purely combinational, these inputs are unnecessary and misleading.",
+      "fix_suggestion": "If the stage should contain EX/MEM pipeline registers, add a clocked always block to register all outputs (ex_alu_result, ex_mem_wdata, etc.) using non-blocking assignments and synchronous reset with rst_n. If the registers are external, remove clk and rst_n from the port list."
+    },
+    {
+      "severity": "low",
+      "line": null,
+      "description": "Inputs ex_rs1_addr and ex_rs2_addr are unused. This may indicate ports left over from a previous iteration or incomplete feature (e.g., they could be used for forwarding logic or debug). Unused inputs are not harmful but clutter the interface.",
+      "fix_suggestion": "Remove ex_rs1_addr and ex_rs2_addr from the port list if they are not needed, or connect them to intended logic if forwarding based on register addresses is planned."
+    }
+  ],
+  "summary": "Module contains multiple critical functional bugs: unsigned branch conditions are wrong, JAL target is incorrectly assigned to ALU result, and store data is not forwarded. Additionally, signed branch conditions may fail with overflow, and unused clk/rst_n inputs raise questions about missing pipeline registers. The module fails basic correctness checks.",
+  "stage": "review_ex_stage",
+  "timestamp": "2026-05-10T21:09:54.466662"
+}

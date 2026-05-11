@@ -1,0 +1,176 @@
+{
+  "module_name": "hazard_unit",
+  "type": "control",
+  "description": "Detect hazards and generate stall/flush/forwarding signals",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "id_rs1_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Source register 1 from ID stage"
+    },
+    {
+      "name": "id_rs2_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Source register 2 from ID stage"
+    },
+    {
+      "name": "id_branch",
+      "direction": "input",
+      "width": 1,
+      "description": "ID stage is branch"
+    },
+    {
+      "name": "id_jump",
+      "direction": "input",
+      "width": 1,
+      "description": "ID stage is JAL"
+    },
+    {
+      "name": "id_jr",
+      "direction": "input",
+      "width": 1,
+      "description": "ID stage is JALR"
+    },
+    {
+      "name": "ex_rd_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Destination register in EX stage"
+    },
+    {
+      "name": "ex_mem_read",
+      "direction": "input",
+      "width": 1,
+      "description": "EX stage has load instruction"
+    },
+    {
+      "name": "ex_reg_write",
+      "direction": "input",
+      "width": 1,
+      "description": "EX stage will write register"
+    },
+    {
+      "name": "mem_rd_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Destination register in MEM stage"
+    },
+    {
+      "name": "mem_reg_write",
+      "direction": "input",
+      "width": 1,
+      "description": "MEM stage will write register"
+    },
+    {
+      "name": "mem_result",
+      "direction": "input",
+      "width": 32,
+      "description": "Result from MEM stage (for forwarding)"
+    },
+    {
+      "name": "wb_rd_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Destination register in WB stage"
+    },
+    {
+      "name": "wb_reg_write",
+      "direction": "input",
+      "width": 1,
+      "description": "WB stage will write register"
+    },
+    {
+      "name": "wb_result",
+      "direction": "input",
+      "width": 32,
+      "description": "Result from WB stage (for forwarding)"
+    },
+    {
+      "name": "branch_taken",
+      "direction": "input",
+      "width": 1,
+      "description": "Branch resolved taken from EX stage"
+    },
+    {
+      "name": "jump_taken",
+      "direction": "input",
+      "width": 1,
+      "description": "Jump taken from ID stage (pc_redirect)"
+    },
+    {
+      "name": "stall_if",
+      "direction": "output",
+      "width": 1,
+      "description": "Stall IF stage"
+    },
+    {
+      "name": "stall_id",
+      "direction": "output",
+      "width": 1,
+      "description": "Stall ID stage"
+    },
+    {
+      "name": "flush_if",
+      "direction": "output",
+      "width": 1,
+      "description": "Flush IF stage"
+    },
+    {
+      "name": "flush_id",
+      "direction": "output",
+      "width": 1,
+      "description": "Flush ID stage"
+    },
+    {
+      "name": "flush_ex",
+      "direction": "output",
+      "width": 1,
+      "description": "Flush EX stage"
+    },
+    {
+      "name": "fwd_alu_a",
+      "direction": "output",
+      "width": 2,
+      "description": "Forwarding select for ALU input A: 00=regfile, 01=MEM, 10=WB"
+    },
+    {
+      "name": "fwd_alu_b",
+      "direction": "output",
+      "width": 2,
+      "description": "Forwarding select for ALU input B: 00=regfile, 01=MEM, 10=WB"
+    },
+    {
+      "name": "fwd_mem_result",
+      "direction": "output",
+      "width": 32,
+      "description": "Forwarded data from MEM stage to EX"
+    },
+    {
+      "name": "fwd_wb_result",
+      "direction": "output",
+      "width": 32,
+      "description": "Forwarded data from WB stage to EX"
+    }
+  ],
+  "functionality": "Detects all pipeline hazards and generates appropriate stall and flush signals. For data hazards, compares source register addresses of instructions in ID/EX with destination register addresses of instructions in EX, MEM, and WB. If a later instruction has a pending write to a register needed by an earlier instruction, forwarding is selected (fwd_alu_a/b) using the appropriate MEM or WB result. For load-use hazards (a load instruction in EX followed by an instruction in ID that uses its result), the pipeline is stalled (stall_if, stall_id) for one cycle. For control hazards (branches/jumps), when a branch is taken (branch_taken) or a jump is in ID (jump_taken), instructions in IF and ID are flushed (flush_if, flush_id). Also flushes EX if necessary. The unit also passes the forwarded data values from MEM and WB stages directly to the EX stage.",
+  "dependencies": [
+    "id_stage",
+    "ex_stage",
+    "mem_stage",
+    "wb_stage"
+  ]
+}

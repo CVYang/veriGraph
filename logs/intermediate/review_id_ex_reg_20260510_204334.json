@@ -1,0 +1,8 @@
+{
+  "module_name": "id_ex_reg",
+  "passed": true,
+  "issues": [],
+  "summary": "The module correctly implements a pipeline register with asynchronous reset and flush. All signals are properly registered, no latch inference, correct use of non-blocking assignments, width mismatches, or other bugs. The flush behavior only clears the valid bit as specified, while other registers retain their state, which is appropriate for bubble insertion. The design is synthesis-clean and meets the specification.",
+  "stage": "review_id_ex_reg",
+  "timestamp": "2026-05-10T20:43:34.635991"
+}

@@ -1,0 +1,8 @@
+{
+  "module_name": "ex_mem_reg",
+  "passed": true,
+  "issues": [],
+  "summary": "The ex_mem_reg pipeline register module is well-designed and follows RTL coding best practices. All outputs are correctly registered on clock edges with non-blocking assignments, proper active-low asynchronous reset is implemented, flush signal clears all pipeline outputs as specified, all port widths match correctly, and there are no latch inference, multiple driver, or synthesis compatibility issues. The module correctly implements the specification for passing execution results and control signals from EX to MEM stages.",
+  "stage": "review_ex_mem_reg",
+  "timestamp": "2026-05-10T16:45:22.588580"
+}

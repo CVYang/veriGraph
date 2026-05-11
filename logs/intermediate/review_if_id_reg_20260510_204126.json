@@ -1,0 +1,15 @@
+{
+  "module_name": "if_id_reg",
+  "passed": true,
+  "issues": [
+    {
+      "severity": "low",
+      "line": 25,
+      "description": "Redundant self-assignment 'id_pc <= id_pc;' in stall condition. In a synchronous always block, omitting an assignment causes the register to retain its value, so explicit self-assignments are unnecessary and can clutter code.",
+      "fix_suggestion": "Remove the self-assignments in the stall branch (lines 25-27), leaving that branch empty or using a comment. The register will naturally hold its value when no new value is assigned."
+    }
+  ],
+  "summary": "The design meets the specification. Reset is synchronous and priority is correctly set. Flush clears valid (and all outputs), stall holds values, and no latch or multiple driver issues exist. Synthesis compatibility is fine. The redundant self-assignments are a minor style issue.",
+  "stage": "review_if_id_reg",
+  "timestamp": "2026-05-10T20:41:26.046179"
+}

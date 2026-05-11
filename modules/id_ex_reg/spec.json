@@ -1,0 +1,243 @@
+{
+  "module_name": "id_ex_reg",
+  "type": "pipeline_register",
+  "description": "Pipeline register between ID and EX stages",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "flush",
+      "direction": "input",
+      "width": 1,
+      "description": "Flush signal"
+    },
+    {
+      "name": "id_rs1_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Source register 1 address from ID"
+    },
+    {
+      "name": "id_rs2_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Source register 2 address from ID"
+    },
+    {
+      "name": "id_rs1_data",
+      "direction": "input",
+      "width": 32,
+      "description": "Source register 1 data from ID"
+    },
+    {
+      "name": "id_rs2_data",
+      "direction": "input",
+      "width": 32,
+      "description": "Source register 2 data from ID"
+    },
+    {
+      "name": "id_imm",
+      "direction": "input",
+      "width": 32,
+      "description": "Immediate from ID"
+    },
+    {
+      "name": "id_rd_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Destination register address from ID"
+    },
+    {
+      "name": "id_pc",
+      "direction": "input",
+      "width": 32,
+      "description": "PC from ID"
+    },
+    {
+      "name": "id_alu_src",
+      "direction": "input",
+      "width": 1,
+      "description": "ALU source select from ID"
+    },
+    {
+      "name": "id_alu_op",
+      "direction": "input",
+      "width": 4,
+      "description": "ALU operation code from ID"
+    },
+    {
+      "name": "id_mem_read",
+      "direction": "input",
+      "width": 1,
+      "description": "Load enable from ID"
+    },
+    {
+      "name": "id_mem_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Store enable from ID"
+    },
+    {
+      "name": "id_funct3",
+      "direction": "input",
+      "width": 3,
+      "description": "funct3 from ID"
+    },
+    {
+      "name": "id_reg_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Register write enable from ID"
+    },
+    {
+      "name": "id_wb_sel",
+      "direction": "input",
+      "width": 2,
+      "description": "Write-back select from ID"
+    },
+    {
+      "name": "id_branch",
+      "direction": "input",
+      "width": 1,
+      "description": "Branch flag from ID"
+    },
+    {
+      "name": "id_jump",
+      "direction": "input",
+      "width": 1,
+      "description": "JAL flag from ID"
+    },
+    {
+      "name": "id_jr",
+      "direction": "input",
+      "width": 1,
+      "description": "JALR flag from ID"
+    },
+    {
+      "name": "id_valid",
+      "direction": "input",
+      "width": 1,
+      "description": "Valid from ID"
+    },
+    {
+      "name": "ex_rs1_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Source register 1 address to EX"
+    },
+    {
+      "name": "ex_rs2_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Source register 2 address to EX"
+    },
+    {
+      "name": "ex_rs1_data",
+      "direction": "output",
+      "width": 32,
+      "description": "Source register 1 data to EX"
+    },
+    {
+      "name": "ex_rs2_data",
+      "direction": "output",
+      "width": 32,
+      "description": "Source register 2 data to EX"
+    },
+    {
+      "name": "ex_imm",
+      "direction": "output",
+      "width": 32,
+      "description": "Immediate to EX"
+    },
+    {
+      "name": "ex_rd_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Destination register address to EX"
+    },
+    {
+      "name": "ex_pc",
+      "direction": "output",
+      "width": 32,
+      "description": "PC to EX"
+    },
+    {
+      "name": "ex_alu_src",
+      "direction": "output",
+      "width": 1,
+      "description": "ALU source select to EX"
+    },
+    {
+      "name": "ex_alu_op",
+      "direction": "output",
+      "width": 4,
+      "description": "ALU operation code to EX"
+    },
+    {
+      "name": "ex_mem_read",
+      "direction": "output",
+      "width": 1,
+      "description": "Load enable to EX"
+    },
+    {
+      "name": "ex_mem_write",
+      "direction": "output",
+      "width": 1,
+      "description": "Store enable to EX"
+    },
+    {
+      "name": "ex_funct3",
+      "direction": "output",
+      "width": 3,
+      "description": "funct3 to EX"
+    },
+    {
+      "name": "ex_reg_write",
+      "direction": "output",
+      "width": 1,
+      "description": "Register write enable to EX"
+    },
+    {
+      "name": "ex_wb_sel",
+      "direction": "output",
+      "width": 2,
+      "description": "Write-back select to EX"
+    },
+    {
+      "name": "ex_branch",
+      "direction": "output",
+      "width": 1,
+      "description": "Branch flag to EX"
+    },
+    {
+      "name": "ex_jump",
+      "direction": "output",
+      "width": 1,
+      "description": "JAL flag to EX"
+    },
+    {
+      "name": "ex_jr",
+      "direction": "output",
+      "width": 1,
+      "description": "JALR flag to EX"
+    },
+    {
+      "name": "ex_valid",
+      "direction": "output",
+      "width": 1,
+      "description": "Valid to EX"
+    }
+  ],
+  "functionality": "Registers all ID stage outputs (control signals, register addresses/data, immediate, PC, and valid) and makes them available to the EX stage. On reset, clears all registers. On flush, the valid bit is cleared to invalidate the instruction (effectively a bubble). No stall input; stalling is managed in earlier pipeline stages.",
+  "dependencies": []
+}

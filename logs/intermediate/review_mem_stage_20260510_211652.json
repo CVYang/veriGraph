@@ -1,0 +1,33 @@
+{
+  "module_name": "mem_stage",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "medium",
+      "line": null,
+      "description": "mem_rdata is computed unconditionally from dmem_rdata and funct3, without checking mem_read. During non-load operations (stores, bubbles) it may output stale or X data, which could propagate to later stages if control signals are not perfectly synchronized.",
+      "fix_suggestion": "Gate the mem_rdata assignments with mem_read. For example, use an if (mem_read) statement around the case block, and set mem_rdata to 32'b0 otherwise."
+    },
+    {
+      "severity": "medium",
+      "line": null,
+      "description": "For funct3 = 3'b010 (LW/SW) the mem_rdata block always assigns dmem_rdata to mem_rdata, even for stores. This can corrupt the value forwarded to the WB stage if a store instruction is misinterpreted.",
+      "fix_suggestion": "Add a condition to only assign mem_rdata = dmem_rdata when mem_read is active; else assign 32'b0 or keep previous value."
+    },
+    {
+      "severity": "low",
+      "line": null,
+      "description": "Use of SystemVerilog 'always_ff' may not be supported by all Verilog synthesis tools that expect pure Verilog-2001.",
+      "fix_suggestion": "Replace 'always_ff @(posedge clk or negedge rst_n)' with standard 'always @(posedge clk or negedge rst_n)' to ensure broader tool compatibility."
+    },
+    {
+      "severity": "low",
+      "line": null,
+      "description": "The combinational blocks for dmem_be and mem_rdata duplicate the same logic for byte/halfword alignment across funct3 cases (e.g., LB/SB, LBU, LHU). This redundancy is not a bug but could be simplified for maintainability.",
+      "fix_suggestion": "Consider using a unified alignment function to reduce code duplication."
+    }
+  ],
+  "summary": "The module implements the required memory stage functionality but has a moderate defect: the load result (mem_rdata) is not guarded by mem_read, allowing invalid data to appear during non-load cycles. This could cause X propagation or subtle write-back errors if downstream control is not strict. Additionally, SystemVerilog 'always_ff' reduces portability. The design otherwise meets the specification for address, write data, and byte enable generation.",
+  "stage": "review_mem_stage",
+  "timestamp": "2026-05-10T21:16:52.805694"
+}

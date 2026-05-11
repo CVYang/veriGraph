@@ -1,0 +1,23 @@
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/alu/alu.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/control_unit/control_unit.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/ex_mem_reg/ex_mem_reg.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/ex_stage/ex_stage.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/hazard_unit/hazard_unit.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/id_ex_reg/id_ex_reg.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/id_stage/id_stage.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/if_id_reg/if_id_reg.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/if_stage/if_stage.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/imm_gen/imm_gen.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/mem_stage/mem_stage.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/mem_wb_reg/mem_wb_reg.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/reg_file/reg_file.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/rv32i_core/rv32i_core.v
+read_verilog -sv /home/leo/Documents/essay/veriGraph/modules/wb_stage/wb_stage.v
+hierarchy -check -top rv32i_core
+proc
+flatten
+opt
+fsm
+opt
+tee -o /home/leo/Documents/essay/veriGraph/logs/synthesis/report_20260510_175931.txt stat
+write_verilog -noattr /home/leo/Documents/essay/veriGraph/output/netlist/rv32i_core_netlist.v

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Module List — VeriGraph</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:#1E1E1E;color:#D4D4D4;padding:20px}
+.container{max-width:1000px;margin:0 auto}
+h1{color:#569CD6;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;background:#252526;border-radius:8px;overflow:hidden}
+th{background:#333;padding:12px;text-align:left;font-size:13px;color:#808080;text-transform:uppercase}
+td{padding:12px;border-bottom:1px solid #333;font-size:13px}
+tr:hover{background:#2D2D2D}
+a{color:#569CD6;text-decoration:none}
+a:hover{text-decoration:underline}
+.status{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px}
+.status.completed{background:#1B5E20;color:#4CAF50}
+.status.failed{background:#B71C1C;color:#EF5350}
+.status.pending{background:#424242;color:#9E9E9E}
+.nav{margin-bottom:20px}
+.nav a{color:#569CD6;text-decoration:none;padding:8px 16px;background:#252526;border-radius:4px;font-size:13px;margin-right:10px}
+</style></head>
+<body>
+<div class="container">
+<div class="nav"><a href="knowledge_graph.html">Knowledge Graph</a></div>
+<h1>Module List — RV32I Core</h1>
+<table><thead><tr><th>Module</th><th>Category</th><th>Description</th><th>Status</th></tr></thead><tbody>
+            <tr>
+                <td><a href="modules/rv32i_core.html">rv32i_core</a></td>
+                <td>Top-Level</td>
+                <td>Top-level wrapper instantiating all submodules</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/if_stage.html">if_stage</a></td>
+                <td>Pipeline Stage</td>
+                <td>Instruction fetch - PC generation and IMEM access</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/id_stage.html">id_stage</a></td>
+                <td>Pipeline Stage</td>
+                <td>Instruction decode, register read, immediate generation</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/ex_stage.html">ex_stage</a></td>
+                <td>Pipeline Stage</td>
+                <td>ALU execution and branch resolution</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/mem_stage.html">mem_stage</a></td>
+                <td>Pipeline Stage</td>
+                <td>Load/store memory access via DMEM</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/wb_stage.html">wb_stage</a></td>
+                <td>Pipeline Stage</td>
+                <td>Write-back results to register file</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/alu.html">alu</a></td>
+                <td>Functional Unit</td>
+                <td>Arithmetic Logic Unit (10 RV32I operations)</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/imm_gen.html">imm_gen</a></td>
+                <td>Functional Unit</td>
+                <td>Immediate generator (I/S/B/U/J types)</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/control_unit.html">control_unit</a></td>
+                <td>Functional Unit</td>
+                <td>Main instruction decoder</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/reg_file.html">reg_file</a></td>
+                <td>Functional Unit</td>
+                <td>32x32-bit register file (x0=0)</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/hazard_unit.html">hazard_unit</a></td>
+                <td>Control</td>
+                <td>Hazard detection, forwarding, stall/flush</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/if_id_reg.html">if_id_reg</a></td>
+                <td>Pipeline Register</td>
+                <td>IF/ID pipeline register</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/id_ex_reg.html">id_ex_reg</a></td>
+                <td>Pipeline Register</td>
+                <td>ID/EX pipeline register</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/ex_mem_reg.html">ex_mem_reg</a></td>
+                <td>Pipeline Register</td>
+                <td>EX/MEM pipeline register</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr>
+            <tr>
+                <td><a href="modules/mem_wb_reg.html">mem_wb_reg</a></td>
+                <td>Pipeline Register</td>
+                <td>MEM/WB pipeline register</td>
+                <td><span class="status completed">COMPLETED</span></td>
+            </tr></tbody></table>
+</div></body></html>

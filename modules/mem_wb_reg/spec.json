@@ -1,0 +1,99 @@
+{
+  "module_name": "mem_wb_reg",
+  "type": "pipeline_register",
+  "description": "Pipeline register between MEM and WB stages",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "flush",
+      "direction": "input",
+      "width": 1,
+      "description": "Flush signal"
+    },
+    {
+      "name": "mem_rdata",
+      "direction": "input",
+      "width": 32,
+      "description": "Load data from MEM (aligned/sign-extended)"
+    },
+    {
+      "name": "mem_alu_out",
+      "direction": "input",
+      "width": 32,
+      "description": "ALU result passthrough from MEM"
+    },
+    {
+      "name": "mem_rd_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Destination register address from MEM"
+    },
+    {
+      "name": "mem_reg_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Register write enable from MEM"
+    },
+    {
+      "name": "mem_wb_sel",
+      "direction": "input",
+      "width": 2,
+      "description": "Write-back select from MEM"
+    },
+    {
+      "name": "mem_valid",
+      "direction": "input",
+      "width": 1,
+      "description": "Valid from MEM"
+    },
+    {
+      "name": "wb_mem_rdata",
+      "direction": "output",
+      "width": 32,
+      "description": "Load data to WB"
+    },
+    {
+      "name": "wb_alu_result",
+      "direction": "output",
+      "width": 32,
+      "description": "ALU result to WB"
+    },
+    {
+      "name": "wb_rd_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Destination register address to WB"
+    },
+    {
+      "name": "wb_reg_write",
+      "direction": "output",
+      "width": 1,
+      "description": "Register write enable to WB"
+    },
+    {
+      "name": "wb_wb_sel",
+      "direction": "output",
+      "width": 2,
+      "description": "Write-back select to WB"
+    },
+    {
+      "name": "wb_valid",
+      "direction": "output",
+      "width": 1,
+      "description": "Valid to WB"
+    }
+  ],
+  "functionality": "Registers the MEM stage outputs (load data, ALU result, destination register, and write-back control signals). On reset, clears registers. On flush, valid is cleared to prevent write-back. Provides synchronous transition of data to the WB stage.",
+  "dependencies": []
+}

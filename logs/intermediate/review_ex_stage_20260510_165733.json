@@ -1,0 +1,39 @@
+{
+  "module_name": "ex_stage",
+  "passed": true,
+  "issues": [
+    {
+      "severity": "medium",
+      "line": 11,
+      "description": "Unused input signals: ex_rs1_addr and ex_rs2_addr are declared but never used in the module. These address values are not needed for operand forwarding or branch resolution, but their presence may indicate incomplete specification or unused port connections from upstream pipeline register.",
+      "fix_suggestion": "Either remove ex_rs1_addr and ex_rs2_addr from the port list if not needed, or use them for validation/debugging if appropriate."
+    },
+    {
+      "severity": "low",
+      "line": 7,
+      "description": "Unused input signals: clk and rst_n are declared as inputs but never used in the module. Since this module contains only combinational logic, clock and reset are not needed here.",
+      "fix_suggestion": "Remove clk and rst_n from the port list if they are not needed, or verify that pipeline registers for this stage should be instantiated externally."
+    },
+    {
+      "severity": "low",
+      "line": 23,
+      "description": "Case statement for fwd_alu_a only explicitly handles 2'b00, 2'b01, 2'b10. The 2'b11 encoding is only caught by the default clause. While functionally correct (default assigns 32'h0), it may cause simulation-synthesis mismatches or synthesis tool warnings.",
+      "fix_suggestion": "Add explicit case for 2'b11 (e.g., '2'b11: alu_a = 32'h0;') before the default clause, or document that 2'b11 is intentionally treated as 32'h0."
+    },
+    {
+      "severity": "low",
+      "line": 31,
+      "description": "Case statement for fwd_alu_b only explicitly handles 2'b00, 2'b01, 2'b10. The 2'b11 encoding is only caught by the default clause. Same concern as fwd_alu_a case statement.",
+      "fix_suggestion": "Add explicit case for 2'b11 (e.g., '2'b11: alu_b_raw = 32'h0;') before the default clause."
+    },
+    {
+      "severity": "medium",
+      "line": 107,
+      "description": "During flush condition, ex_alu_result is assigned the actual alu_result input rather than being cleared. This means the ALU result still propagates through the pipeline register during flush, which may be intentional for debug purposes but could also cause downstream issues if the result is used during a flushed instruction.",
+      "fix_suggestion": "Verify that passing alu_result through during flush is intentional. If not needed, consider setting ex_alu_result = 32'h0 during flush to avoid propagating stale data."
+    }
+  ],
+  "summary": "The ex_stage module is structurally sound and correctly implements the execute stage functionality. It properly handles ALU operand forwarding muxes (3-to-1 for both operands), branch condition evaluation (BEQ, BNE, BLT, BGE, BLTU, BGEU), branch target calculation (PC + immediate), and jump resolution (JAL/JALR). The module passes through control signals to the EX/MEM pipeline register with appropriate flush behavior. Minor issues include unused signals (clk, rst_n, ex_rs1_addr, ex_rs2_addr) and case statements that could benefit from explicit handling of all 2-bit encoding combinations. No critical bugs found - no latch inference, no width mismatches, no missing defaults in critical paths, and branch condition logic is mathematically correct for both signed and unsigned comparisons.",
+  "stage": "review_ex_stage",
+  "timestamp": "2026-05-10T16:57:33.154920"
+}

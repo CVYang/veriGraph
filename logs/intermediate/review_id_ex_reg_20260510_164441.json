@@ -1,0 +1,15 @@
+{
+  "module_name": "id_ex_reg",
+  "passed": true,
+  "issues": [
+    {
+      "severity": "medium",
+      "line": 40,
+      "description": "Flush signal clears only ex_valid but preserves all other pipeline state (rs1_addr, rs2_addr, rs1_data, rs2_data, imm, rd_addr, pc, control signals). According to the module specification, 'flush signal, clears all outputs'. This may cause stale data to remain in the pipeline during flush conditions.",
+      "fix_suggestion": "Consider whether the flush condition should clear all outputs or just the valid signal. If all outputs should be cleared, add assignments to zero all signals under the flush condition. If ex_valid being cleared is sufficient for downstream handling, the current implementation is acceptable but verify that downstream EX stage properly ignores data when valid is cleared."
+    }
+  ],
+  "summary": "The id_ex_reg pipeline register module is generally well-designed with correct use of non-blocking assignments, proper asynchronous reset handling, correct width matching between inputs and outputs, and synthesis-compatible constructs. The only potential issue identified is that the flush condition only clears ex_valid rather than clearing all outputs as stated in the specification. This is a common and acceptable design choice where only the valid signal is cleared and downstream stages are expected to ignore data when valid is cleared. However, if strict clearing of all outputs is required, the flush block should assign all signals to zero. No critical or blocking issues found.",
+  "stage": "review_id_ex_reg",
+  "timestamp": "2026-05-10T16:44:41.155352"
+}

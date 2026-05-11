@@ -1,0 +1,39 @@
+{
+  "module_name": "alu",
+  "type": "functional_unit",
+  "description": "Arithmetic and logic unit for RV32I operations",
+  "ports": [
+    {
+      "name": "a",
+      "direction": "input",
+      "width": 32,
+      "description": "Operand A"
+    },
+    {
+      "name": "b",
+      "direction": "input",
+      "width": 32,
+      "description": "Operand B"
+    },
+    {
+      "name": "op",
+      "direction": "input",
+      "width": 4,
+      "description": "Operation code (0:ADD, 1:SUB, 2:SLL, 3:SLT, 4:SLTU, 5:XOR, 6:SRL, 7:SRA, 8:OR, 9:AND)"
+    },
+    {
+      "name": "result",
+      "direction": "output",
+      "width": 32,
+      "description": "32-bit result of the operation"
+    },
+    {
+      "name": "zero",
+      "direction": "output",
+      "width": 1,
+      "description": "Zero flag, asserted when result equals zero"
+    }
+  ],
+  "functionality": "Performs arithmetic and logical operations on 32-bit operands A and B as selected by op. For shift operations SLL, SRL, SRA only the lower 5 bits of B are used as shift amount. SLT performs signed comparison; SLTU performs unsigned comparison. Outputs the computed result and a zero flag (result == 0). All operations are combinational.",
+  "dependencies": []
+}

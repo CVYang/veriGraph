@@ -1,406 +1,547 @@
-# RISC-V Core Specification
-
-**Document Version:** 1.0
-**Date:** 2026-04-26
-**Architecture:** RV32GC (RV32I + M + A + F + D + C)
-**Target:** General Purpose Processor
-
----
+# RV32I Single-Issue In-Order Core Specification
 
 ## 1. Overview
 
-### 1.1 Target Application
-High-performance general purpose processor for embedded and mobile applications.
-
-### 1.2 Key Features
-- 2-way superscalar issue and execution
-- 8-stage pipeline with branch prediction
-- Separate I-cache and D-cache
-- Integer ALU, Floating-point Unit (FPU), Load/Store Unit
-- Support for RISC-V ISA extensions: M, A, F, D, C
+- **ISA**: RV32I (RV32I base integer instruction set)
+- **Pipeline**: 5-stage (IF/ID/EX/MEM/WB), single-issue, in-order
+- **No Cache**: Direct IMEM/DMEM access (single-cycle memory)
+- **No Branch Prediction**: Stall on branches, resolve in EX stage
+- **Forwarding**: EX/MEM/WB to EX (full forwarding)
+- **JAL/JALR**: Resolved in ID, flush IF on taken
 
 ---
 
-## 2. Architecture Overview
-
-### 2.1 ISA Support
-| Extension | Description | Status |
-|-----------|-------------|--------|
-| I | Base Integer Instructions | Required |
-| M | Integer Multiplication/Division | Required |
-| A | Atomic Instructions | Required |
-| F | Single-Precision Floating Point | Required |
-| D | Double-Precision Floating Point | Required |
-| C | Compressed Instructions | Required |
-
-### 2.2 Privilege Modes
-- Machine Mode (M-mode)
-- User Mode (U-mode) - future extension
-
-### 2.3 Physical Memory Attributes (PMA)
-- Main Memory (cacheable)
-- I/O Devices (non-cacheable)
-- ROM (cacheable for instruction fetch)
-
----
-
-## 3. Pipeline Architecture
-
-### 3.1 Pipeline Stages
+## 2. Top-Level Interface (`rv32i_core`)
 
 ```
-Stage 1: IF1 - Instruction Fetch 1 (PC calculation, instruction cache access)
-Stage 2: IF2 - Instruction Fetch 2 (Instruction alignment, branch prediction)
-Stage 3: ID  - Instruction Decode (Decode, register file read)
-Stage 4: IS  - Issue Queue (Instruction issue to execution units)
-Stage 5: EX1 - Execution Stage 1 (ALU operation, effective address calculation)
-Stage 6: EX2 - Execution Stage 2 (Multi-cycle operations, branch resolution)
-Stage 7: MEM - Memory Access (Load/Store to data cache)
-Stage 8: WB  - Write Back (Result write-back to register file)
+Module: rv32i_core
+Purpose: Top-level wrapper instantiating all submodules and connecting pipeline stages
+
+Ports:
+    input  logic        clk           // Clock
+    input  logic        rst_n         // Active-low reset
+
+    // Instruction Memory Interface
+    output logic [31:0] imem_addr     // Instruction address
+    input  logic [31:0] imem_rdata    // Instruction data (single-cycle)
+    output logic        imem_req      // Instruction request
+
+    // Data Memory Interface
+    output logic [31:0] dmem_addr     // Data address
+    output logic [31:0] dmem_wdata    // Data write data
+    input  logic [31:0] dmem_rdata    // Data read data (single-cycle)
+    output logic        dmem_req      // Data request
+    output logic        dmem_we       // Write enable (1=write, 0=read)
+    output logic [3:0]  dmem_be       // Byte enable
 ```
 
-### 3.2 Superscalar Organization
+---
 
-| Issue Slot | Lane 0 | Lane 1 |
-|------------|--------|--------|
-| Issue Width | 2 instructions per cycle | |
-| Dispatch    | In-order | In-order |
-| Execution   | Out-of-order completion | Out-of-order completion |
-| Commit      | In-order (write-back) | In-order (write-back) |
+## 3. Pipeline Stage Modules
 
-### 3.3 Execution Units
+### 3.1 IF Stage (`if_stage`)
 
-| Unit | Quantity | Latency | Operations |
-|------|----------|---------|------------|
-| Integer ALU | 1 | 1 cycle | ADD, SUB, AND, OR, XOR, SLT, SLTU, SLL, SRL, SRA, etc. |
-| Integer Mul | 1 | 3 cycles | MUL, MULH, MULHU, MULHSU |
-| Integer Div | 1 | 5 cycles (pipelined) | DIV, DIVU, REM, REMU |
-| Branch Unit | 1 | 1-2 cycles | JAL, JALR, B-type |
-| FPU (SP) | 1 | 4 cycles | FADD.S, FSUB.S, FMUL.S, FDIV.S, etc. |
-| FPU (DP) | 1 | 5 cycles | FADD.D, FSUB.D, FMUL.D, FDIV.D, etc. |
-| Load/Store | 1 | 2-4 cycles | LB, LH, LW, LBU, LHU, SB, SH, SW, etc. |
-| Atomic | 1 | 4-6 cycles | LR, SC, AMO ops |
+```
+Module: if_stage
+Purpose: Instruction fetch stage - generates PC and fetches from IMEM
+
+Ports:
+    // Clock & Reset
+    input  logic        clk
+    input  logic        rst_n
+
+    // Control inputs
+    input  logic        stall          // Stall IF (from hazard_unit)
+    input  logic        flush          // Flush IF (from branch/jump)
+
+    // PC redirect (from EX for branch, from ID for JAL/JALR)
+    input  logic        pc_redirect    // PC redirect enable
+    input  logic [31:0] pc_target      // New PC value
+
+    // IMEM interface
+    output logic [31:0] imem_addr      // Instruction address
+    input  logic [31:0] imem_rdata     // Instruction data
+    output logic        imem_req       // Instruction request
+
+    // To IF/ID pipeline register
+    output logic [31:0] if_pc          // Current PC
+    output logic [31:0] if_instr       // Fetched instruction
+    output logic        if_valid       // Instruction valid
+```
+
+### 3.2 ID Stage (`id_stage`)
+
+```
+Module: id_stage
+Purpose: Instruction decode, register file read, immediate generation
+
+Ports:
+    input  logic        clk
+    input  logic        rst_n
+
+    // From IF/ID pipeline register
+    input  logic [31:0] id_pc
+    input  logic [31:0] id_instr
+    input  logic        id_valid
+
+    // Control inputs
+    input  logic        flush          // Flush ID (from branch/jump)
+
+    // Register file interface
+    output logic [4:0]  rf_rs1_addr    // Source register 1 address
+    output logic [4:0]  rf_rs2_addr    // Source register 2 address
+    input  logic [31:0] rf_rs1_data    // Source register 1 data
+    input  logic [31:0] rf_rs2_data    // Source register 2 data
+
+    // Decode outputs (to ID/EX pipeline register)
+    output logic [4:0]  id_rs1_addr    // Source reg 1 addr (for forwarding)
+    output logic [4:0]  id_rs2_addr    // Source reg 2 addr (for forwarding)
+    output logic [31:0] id_rs1_data    // Source reg 1 data
+    output logic [31:0] id_rs2_data    // Source reg 2 data
+    output logic [31:0] id_imm         // Immediate value
+    output logic [4:0]  id_rd_addr     // Destination register addr
+    output logic [31:0] id_pc_out      // PC passed through
+
+    // Control signals (to hazard/forwarding and EX stage)
+    output logic        id_alu_src     // 0=rs2, 1=imm
+    output logic [3:0]  id_alu_op      // ALU operation code
+    output logic        id_mem_read    // Load enable
+    output logic        id_mem_write   // Store enable
+    output logic [2:0]  id_funct3      // funct3 for load/store size
+    output logic        id_reg_write   // Register write enable
+    output logic [1:0]  id_wb_sel      // 00=ALU, 01=MEM, 10=PC+4
+    output logic        id_branch      // Is branch instruction
+    output logic        id_jump        // Is JAL/JALR
+    output logic        id_jr          // Is JALR (use rs1+imm for target)
+
+    // JAL/JALR PC redirect (resolved in ID)
+    output logic        id_pc_redirect // PC redirect for jumps
+    output logic [31:0] id_pc_target   // Jump target address
+```
+
+### 3.3 EX Stage (`ex_stage`)
+
+```
+Module: ex_stage
+Purpose: Execute stage - ALU operation, branch resolution
+
+Ports:
+    input  logic        clk
+    input  logic        rst_n
+
+    // From ID/EX pipeline register
+    input  logic [31:0] ex_pc
+    input  logic [4:0]  ex_rs1_addr
+    input  logic [4:0]  ex_rs2_addr
+    input  logic [31:0] ex_rs1_data
+    input  logic [31:0] ex_rs2_data
+    input  logic [31:0] ex_imm
+    input  logic [4:0]  ex_rd_addr
+    input  logic        ex_alu_src
+    input  logic [3:0]  ex_alu_op
+    input  logic        ex_mem_read
+    input  logic        ex_mem_write
+    input  logic [2:0]  ex_funct3
+    input  logic        ex_reg_write
+    input  logic [1:0]  ex_wb_sel
+    input  logic        ex_branch
+    input  logic        ex_jump
+    input  logic        ex_jr
+    input  logic        ex_valid
+
+    // Control inputs
+    input  logic        flush           // Flush EX
+
+    // Forwarding (from hazard_unit)
+    input  logic [1:0]  fwd_alu_a       // Forward select for ALU operand A
+    input  logic [1:0]  fwd_alu_b       // Forward select for ALU operand B
+    input  logic [31:0] fwd_mem_result  // Forward data from MEM stage
+    input  logic [31:0] fwd_wb_result   // Forward data from WB stage
+
+    // ALU interface
+    output logic [31:0] alu_a           // ALU operand A
+    output logic [31:0] alu_b           // ALU operand B
+    output logic [3:0]  alu_op          // ALU operation code
+    input  logic [31:0] alu_result      // ALU result
+    input  logic        alu_zero        // ALU zero flag
+
+    // Branch resolution
+    output logic        branch_taken    // Branch taken signal
+    output logic [31:0] branch_target   // Branch target address
+
+    // To EX/MEM pipeline register
+    output logic [31:0] ex_alu_result   // ALU result for MEM/WB
+    output logic [31:0] ex_mem_wdata    // Data to store (rs2)
+    output logic [4:0]  ex_rd_addr_out  // Destination register
+    output logic        ex_mem_read_out
+    output logic        ex_mem_write_out
+    output logic [2:0]  ex_funct3_out
+    output logic        ex_reg_write_out
+    output logic [1:0]  ex_wb_sel_out
+    output logic        ex_valid_out
+```
+
+### 3.4 MEM Stage (`mem_stage`)
+
+```
+Module: mem_stage
+Purpose: Memory access stage - load/store via DMEM
+
+Ports:
+    input  logic        clk
+    input  logic        rst_n
+
+    // From EX/MEM pipeline register
+    input  logic [31:0] mem_alu_result
+    input  logic [31:0] mem_wdata
+    input  logic [4:0]  mem_rd_addr
+    input  logic        mem_read
+    input  logic        mem_write
+    input  logic [2:0]  mem_funct3
+    input  logic        mem_reg_write
+    input  logic [1:0]  mem_wb_sel
+    input  logic        mem_valid
+
+    // DMEM interface
+    output logic [31:0] dmem_addr
+    output logic [31:0] dmem_wdata
+    input  logic [31:0] dmem_rdata
+    output logic        dmem_req
+    output logic        dmem_we
+    output logic [3:0]  dmem_be
+
+    // To MEM/WB pipeline register
+    output logic [31:0] mem_rdata       // Load data (after alignment and sign-extension)
+    output logic [31:0] mem_alu_out     // ALU result passthrough
+    output logic [4:0]  mem_rd_addr_out
+    output logic        mem_reg_write_out
+    output logic [1:0]  mem_wb_sel_out
+    output logic        mem_valid_out
+```
+
+### 3.5 WB Stage (`wb_stage`)
+
+```
+Module: wb_stage
+Purpose: Write-back stage - writes result to register file
+
+Ports:
+    input  logic        clk
+    input  logic        rst_n
+
+    // From MEM/WB pipeline register
+    input  logic [31:0] wb_mem_rdata
+    input  logic [31:0] wb_alu_result
+    input  logic [4:0]  wb_rd_addr
+    input  logic        wb_reg_write
+    input  logic [1:0]  wb_wb_sel
+    input  logic        wb_valid
+
+    // Register file write interface
+    output logic [4:0]  rf_waddr       // Write address
+    output logic [31:0] rf_wdata       // Write data
+    output logic        rf_we          // Write enable
+
+    // Forwarding data to hazard_unit
+    output logic [31:0] wb_result      // Final WB result (for forwarding)
+```
 
 ---
 
-## 4. Branch Prediction
+## 4. Functional Unit Modules
 
-### 4.1 Branch Predictor Types
+### 4.1 Register File (`reg_file`)
 
-| Predictor | Configuration | Description |
-|-----------|---------------|-------------|
-| BTB | 128 entries | Branch Target Buffer |
-| BHT | 64 entries | Branch History Table (2-bit saturating counter) |
-| RAS | 8 entries | Return Address Stack |
-| GShare | 128 entries | Global History Branch Predictor (optional) |
+```
+Module: reg_file
+Purpose: 32 x 32-bit general purpose register file (x0 hardwired to 0)
 
-### 4.2 Branch Resolution
-- Branch direction resolved in EX1 stage
-- Branch target resolved in EX1 stage
-- Misprediction penalty: 3 cycles (flush IF1, IF2 stages)
+Ports:
+    input  logic        clk
+    input  logic        rst_n
 
-### 4.3 Branch Prediction Accuracy Target
-- Target accuracy: > 90%
-- Mispredict rate: < 5%
+    // Read ports (from ID stage)
+    input  logic [4:0]  rs1_addr       // Read address 1
+    input  logic [4:0]  rs2_addr       // Read address 2
+    output logic [31:0] rs1_data       // Read data 1
+    output logic [31:0] rs2_data       // Read data 2
 
----
+    // Write port (from WB stage)
+    input  logic [4:0]  waddr          // Write address
+    input  logic [31:0] wdata          // Write data
+    input  logic        we             // Write enable
+```
 
-## 5. Cache System
+### 4.2 ALU (`alu`)
 
-### 5.1 L1 Instruction Cache (I-Cache)
+```
+Module: alu
+Purpose: Arithmetic and logic unit for RV32I operations
 
-| Parameter | Value |
-|-----------|-------|
-| Size | 16 KB |
-| Associativity | 4-way |
-| Line Size | 64 bytes |
-| Hit Latency | 1 cycle |
-| Miss Penalty | ~10 cycles (to main memory) |
-| Replacement Policy | LRU |
-| Write Policy | Read-allocate, write-no-allocate |
+Ports:
+    input  logic [31:0] a              // Operand A
+    input  logic [31:0] b              // Operand B
+    input  logic [3:0]  op             // Operation code
+    output logic [31:0] result         // Result
+    output logic        zero           // Zero flag
 
-### 5.2 L1 Data Cache (D-Cache)
+    // ALU Operation Code (op):
+    //   4'd0 : ADD    (a + b)
+    //   4'd1 : SUB    (a - b)
+    //   4'd2 : SLL    (a << b[4:0])
+    //   4'd3 : SLT    (signed a < signed b)
+    //   4'd4 : SLTU   (unsigned a < unsigned b)
+    //   4'd5 : XOR    (a ^ b)
+    //   4'd6 : SRL    (a >> b[4:0])
+    //   4'd7 : SRA    (a >>> b[4:0], arithmetic)
+    //   4'd8 : OR     (a | b)
+    //   4'd9 : AND    (a & b)
+```
 
-| Parameter | Value |
-|-----------|-------|
-| Size | 16 KB |
-| Associativity | 4-way |
-| Line Size | 64 bytes |
-| Hit Latency | 1 cycle |
-| Miss Penalty | ~10 cycles (to main memory) |
-| Replacement Policy | LRU |
-| Write Policy | Write-back |
-| Write Buffer | 4 entries |
+### 4.3 Immediate Generator (`imm_gen`)
 
-### 5.3 Cache Coherency
-- No coherency protocol (single core)
-- Memory coherency maintained by software
+```
+Module: imm_gen
+Purpose: Extract and sign-extend immediate from instruction
 
-### 5.4 L2 Cache (Unified)
+Ports:
+    input  logic [31:0] instr          // 32-bit instruction
+    output logic [31:0] imm            // 32-bit sign-extended immediate
 
-| Parameter | Value |
-|-----------|-------|
-| Size | 256 KB |
-| Associativity | 8-way |
-| Line Size | 64 bytes |
-| Hit Latency | 3 cycles |
-| Miss Penalty | ~20 cycles (to main memory) |
-| Replacement Policy | LRU |
-| Write Policy | Write-back |
-| Coherency | Snooping (future AMBA compliance) |
+    // Generates appropriate immediate for:
+    //   I-type (opcode[5] = 0):  {{20{instr[31]}}, instr[31:20]}
+    //   S-type (opcode 0x23):   {{20{instr[31]}}, instr[31:25], instr[11:7]}
+    //   B-type (opcode 0x63):   {{19{instr[31]}}, instr[31], instr[7], instr[30:25], instr[11:8], 1'b0}
+    //   U-type (opcode 0x37/0x17): {instr[31:12], 12'b0}
+    //   J-type (opcode 0x6F):   {{11{instr[31]}}, instr[31], instr[19:12], instr[20], instr[30:21], 1'b0}
+```
 
-### 5.5 Memory Interface
+### 4.4 Control Unit (`control_unit`)
 
-| Parameter | Value |
-|-----------|-------|
-| Memory Data Width | 64-bit |
-| Memory Address Width | 32-bit |
-| Maximum Memory Size | 4 GB |
-| Supports unaligned access | Yes (trapped) |
+```
+Module: control_unit
+Purpose: Decode instruction and generate control signals
 
----
+Ports:
+    input  logic [31:0] instr          // 32-bit instruction
+    output logic        alu_src        // 0=rs2, 1=imm (for ALU mux)
+    output logic [3:0]  alu_op         // ALU operation code
+    output logic        mem_read       // Load instruction
+    output logic        mem_write      // Store instruction
+    output logic        reg_write      // Write to register file
+    output logic [1:0]  wb_sel         // 00=ALU, 01=MEM, 10=PC+4
+    output logic        branch         // Is branch (B-type)
+    output logic        jump           // Is JAL
+    output logic        jr             // Is JALR
+    output logic        is_load        // Is load
+    output logic        is_store       // Is store
+    output logic [2:0]  funct3         // funct3 field
+```
 
-## 6. Execution Units Detail
+### 4.5 Hazard & Forwarding Unit (`hazard_unit`)
 
-### 6.1 Integer ALU
-- Single-cycle operations
-- Supports all RISC-V I-extension instructions
-- Zero cycle latency (result available next stage)
+```
+Module: hazard_unit
+Purpose: Detect hazards and generate stall/flush/forwarding signals
 
-### 6.2 Integer Multiplier/Divider
-- Pipelined multiplier: 3 cycle latency
-- Pipelined divider: 5 cycle latency
-- Supports M-extension instructions
+Ports:
+    input  logic        clk
+    input  logic        rst_n
 
-### 6.3 Floating-Point Unit (FPU)
+    // From ID stage (current instruction source registers)
+    input  logic [4:0]  id_rs1_addr
+    input  logic [4:0]  id_rs2_addr
+    input  logic        id_branch
+    input  logic        id_jump
+    input  logic        id_jr
 
-| Feature | Single Precision (F) | Double Precision (D) |
-|---------|---------------------|---------------------|
-| Latency | 4 cycles | 5 cycles |
-| Throughput | 1 per cycle | 1 per 2 cycles |
-| Pipeline Depth | 4 | 5 |
-| Exception Handling | Yes | Yes |
-| Rounding Modes | All 5 RISC-V modes | All 5 RISC-V modes |
-| NaN Handling | IEEE 754 compliant | IEEE 754 compliant |
+    // From EX stage (for load-use hazard detection)
+    input  logic [4:0]  ex_rd_addr
+    input  logic        ex_mem_read      // EX has load instruction
+    input  logic        ex_reg_write
 
-**FPU Register File:**
-- 32 registers (f0-f31)
-- Each register: 32 bits (F), 64 bits (D)
-- Dual-port read, single-port write
+    // From MEM stage (for forwarding)
+    input  logic [4:0]  mem_rd_addr
+    input  logic        mem_reg_write
+    input  logic [31:0] mem_result       // MEM stage result (for forwarding)
 
-### 6.4 Load/Store Unit
+    // From WB stage (for forwarding)
+    input  logic [4:0]  wb_rd_addr
+    input  logic        wb_reg_write
+    input  logic [31:0] wb_result        // WB stage result (for forwarding)
 
-| Parameter | Value |
-|-----------|-------|
-| Load Latency | 2 cycles (cache hit) |
-| Store Latency | 1 cycle (cache hit, write buffer) |
-| Address Generation | Base + offset (signed/unsigned) |
-| Alignment | Supports word and halfword alignment |
-| Unaligned Access | Trapped (U-mode) |
+    // Branch/Jump resolution
+    input  logic        branch_taken     // From EX stage
+    input  logic        jump_taken       // From ID/EX
 
-**Supported Load Instructions:** LB, LBU, LH, LHU, LW, FLW, FLD
-**Supported Store Instructions:** SB, SH, SW, FSW, FSD
+    // Control outputs
+    output logic        stall_if         // Stall IF stage
+    output logic        stall_id         // Stall ID stage
+    output logic        flush_if         // Flush IF stage
+    output logic        flush_id         // Flush ID stage
+    output logic        flush_ex         // Flush EX stage
 
-### 6.5 Atomic Unit
-- Supports LR/SC sequences
-- Supports AMO operations: AMOSWAP, AMOADD, AMOAND, AMOOR, AMOXOR, AMOMIN, AMOMAX, AMOMINU, AMOMAXU
-- Atomic operation latency: 4-6 cycles
-
----
-
-## 7. Register Files
-
-### 7.1 Integer Register File
-
-| Parameter | Value |
-|-----------|-------|
-| Registers | 32 (x0-x31) |
-| Register Width | 32 bits |
-| Read Ports | 4 (2 read ports x 2 lanes) |
-| Write Ports | 2 (1 per lane) |
-| x0 Read | Always returns 0 |
-| x0 Write | Discarded |
-
-### 7.2 Floating-Point Register File
-
-| Parameter | Value |
-|-----------|-------|
-| Registers | 32 (f0-f31) |
-| Register Width | 64 bits (D extension) |
-| Read Ports | 4 (2 read ports x 2 lanes) |
-| Write Ports | 2 (1 per lane) |
-| f0 Read | Normal read (not constant zero) |
-
-### 7.3 Control and Status Registers (CSRs)
-
-**Required CSRs:**
-- MTVEC (Machine Trap Vector)
-- MEPC (Machine Exception PC)
-- MCAUSE (Machine Cause)
-- MTVAL (Machine Trap Value)
-- MSTATUS (Machine Status)
-- MISA (Machine ISA)
-- MHARTID (Hardware Thread ID)
-- MCYCLE (Machine Cycle Counter)
-- MINSTRET (Machine Instructions Retired)
+    // Forwarding select (to EX stage)
+    output logic [1:0]  fwd_alu_a        // 00=regfile, 01=MEM, 10=WB
+    output logic [1:0]  fwd_alu_b        // 00=regfile, 01=MEM, 10=WB
+    output logic [31:0] fwd_mem_result   // Forward data from MEM
+    output logic [31:0] fwd_wb_result    // Forward data from WB
+```
 
 ---
 
-## 8. Interrupt and Exception Handling
+## 5. Pipeline Registers
 
-### 8.1 Exception Types
+### 5.1 IF/ID Register (`if_id_reg`)
 
-| Exception Code | Description |
-|----------------|-------------|
-| 0 | Instruction address misaligned |
-| 1 | Instruction access fault |
-| 2 | Illegal instruction |
-| 3 | Breakpoint |
-| 4 | Load address misaligned |
-| 5 | Load access fault |
-| 6 | Store/AMO address misaligned |
-| 7 | Store/AMO access fault |
-| 8 | Environment call from U-mode |
-| 9 | Environment call from M-mode |
-| 11 | Instruction page fault |
-| 13 | Load page fault |
-| 15 | Store/AMO page fault |
+```
+Module: if_id_reg
+Purpose: Pipeline register between IF and ID stages
 
-### 8.2 Interrupt Types
+Ports:
+    input  logic        clk, rst_n
+    input  logic        flush
+    input  logic        stall
 
-| Interrupt Code | Description |
-|----------------|-------------|
-| 1 | Software interrupt (MSWINT) |
-| 2 | Hart software interrupt |
-| 3 | Timer interrupt (MTIME) |
-| 7 | Machine external interrupt |
+    input  logic [31:0] if_pc
+    input  logic [31:0] if_instr
+    input  logic        if_valid
 
-### 8.3 Interrupt Latency
-- Interrupt detection: 1 cycle
-- Interrupt vectoring: 2 cycles
-- Total interrupt latency: 3-5 cycles
+    output logic [31:0] id_pc
+    output logic [31:0] id_instr
+    output logic        id_valid
+```
 
----
+### 5.2 ID/EX Register (`id_ex_reg`)
 
-## 9. Clock and Power
+```
+Module: id_ex_reg
+Purpose: Pipeline register between ID and EX stages
 
-### 9.1 Target Clock Frequency
-- Target frequency: 200 MHz
-- Maximum frequency: 400 MHz
+Ports:
+    input  logic        clk, rst_n
+    input  logic        flush
 
-### 9.2 Performance Targets
-- Target: 2.5 DMIPS/MHz (typical)
-- Range: 2-3 DMIPS/MHz
-- CoreMark target: > 3.0 CoreMark/MHz (estimated)
+    // Control
+    input  logic [4:0]  id_rs1_addr, id_rs2_addr
+    input  logic [31:0] id_rs1_data, id_rs2_data
+    input  logic [31:0] id_imm
+    input  logic [4:0]  id_rd_addr
+    input  logic [31:0] id_pc
+    input  logic        id_alu_src
+    input  logic [3:0]  id_alu_op
+    input  logic        id_mem_read, id_mem_write
+    input  logic [2:0]  id_funct3
+    input  logic        id_reg_write
+    input  logic [1:0]  id_wb_sel
+    input  logic        id_branch, id_jump, id_jr
+    input  logic        id_valid
 
-### 9.3 Power Management
-- Clock gating for idle units
-- Dynamic frequency scaling (future)
-- Power domain isolation
+    // All inputs passed through to outputs with same names, prefixed ex_*
+    output logic [4:0]  ex_rs1_addr, ex_rs2_addr
+    output logic [31:0] ex_rs1_data, ex_rs2_data
+    output logic [31:0] ex_imm
+    output logic [4:0]  ex_rd_addr
+    output logic [31:0] ex_pc
+    output logic        ex_alu_src
+    output logic [3:0]  ex_alu_op
+    output logic        ex_mem_read, ex_mem_write
+    output logic [2:0]  ex_funct3
+    output logic        ex_reg_write
+    output logic [1:0]  ex_wb_sel
+    output logic        ex_branch, ex_jump, ex_jr
+    output logic        ex_valid
+```
 
-### 9.3 Process Node
-- Target: TSMC 28nm (or equivalent)
-- Typical voltage: 1.0V - 1.2V
+### 5.3 EX/MEM Register (`ex_mem_reg`)
 
----
+```
+Module: ex_mem_reg
+Purpose: Pipeline register between EX and MEM stages
 
-## 10. Interface Signals
+Ports:
+    input  logic        clk, rst_n
+    input  logic        flush
 
-### 10.1 Clock and Reset
-| Signal | Direction | Description |
-|--------|-----------|-------------|
-| clk | Input | System clock |
-| rst_n | Input | Active-low reset |
+    input  logic [31:0] ex_alu_result
+    input  logic [31:0] ex_mem_wdata
+    input  logic [4:0]  ex_rd_addr
+    input  logic        ex_mem_read, ex_mem_write
+    input  logic [2:0]  ex_funct3
+    input  logic        ex_reg_write
+    input  logic [1:0]  ex_wb_sel
+    input  logic        ex_valid
 
-### 10.2 Memory Interface
-| Signal | Direction | Description |
-|--------|-----------|-------------|
-| imem_req_valid | Output | Instruction memory request valid |
-| imem_req_addr | Output | Instruction memory address |
-| imem_req_ready | Input | Instruction memory ready |
-| imem_resp_valid | Input | Instruction memory response valid |
-| imem_resp_data | Input | Instruction memory data |
-| dmem_req_valid | Output | Data memory request valid |
-| dmem_req_addr | Output | Data memory address |
-| dmem_req_we | Output | Data memory write enable |
-| dmem_req_be | Output | Data memory byte enable |
-| dmem_req_wdata | Output | Data memory write data |
-| dmem_resp_valid | Input | Data memory response valid |
-| dmem_resp_rdata | Input | Data memory read data |
+    // All inputs passed through with mem_* prefix
+    output logic [31:0] mem_alu_result
+    output logic [31:0] mem_wdata
+    output logic [4:0]  mem_rd_addr
+    output logic        mem_read, mem_write
+    output logic [2:0]  mem_funct3
+    output logic        mem_reg_write
+    output logic [1:0]  mem_wb_sel
+    output logic        mem_valid
+```
 
-### 10.3 Interrupt Interface
-| Signal | Direction | Description |
-|--------|-----------|-------------|
-| mti | Input | Machine timer interrupt |
-| mei | Input | Machine external interrupt |
-| msi | Input | Machine software interrupt |
+### 5.4 MEM/WB Register (`mem_wb_reg`)
 
-### 10.4 Debug Interface
-| Signal | Direction | Description |
-|--------|-----------|-------------|
-| debug_halt | Input | Debug halt request |
-| debug_resume | Input | Debug resume request |
-| debug_pc | Output | Current program counter |
-| debug_state | Output | Debug state |
+```
+Module: mem_wb_reg
+Purpose: Pipeline register between MEM and WB stages
 
----
+Ports:
+    input  logic        clk, rst_n
+    input  logic        flush
 
-## 11. Verification Plan
+    input  logic [31:0] mem_rdata
+    input  logic [31:0] mem_alu_out
+    input  logic [4:0]  mem_rd_addr
+    input  logic        mem_reg_write
+    input  logic [1:0]  mem_wb_sel
+    input  logic        mem_valid
 
-### 11.1 Verification Levels
-1. **Unit Level**: Individual execution unit verification
-2. **Pipeline Level**: Stage-by-stage verification
-3. **Core Level**: Full core verification with random instruction sequences
-4. **SoC Level**: Integration verification
-
-### 11.2 Test Suites
-- RISC-V Architecture Test Suite (riscv-tests)
-- RISC-V Compliance Test Suite
-- Custom directed tests for each execution unit
-- Random instruction stream generator
-
-### 11.3 Coverage Metrics
-- Functional coverage: > 95%
-- Code coverage: > 90%
-- Branch coverage: 100%
-
----
-
-## 12. Implementation Milestones
-
-| Phase | Description | Duration |
-|-------|-------------|----------|
-| Phase 1 | ISA Decoder and Register Files | 4 weeks |
-| Phase 2 | Integer Execution Units (ALU, Mul, Div) | 4 weeks |
-| Phase 3 | Pipeline Integration and BPU | 6 weeks |
-| Phase 4 | FPU Implementation | 6 weeks |
-| Phase 5 | Cache Subsystem | 6 weeks |
-| Phase 6 | Load/Store and Atomic Units | 4 weeks |
-| Phase 7 | Integration and Verification | 8 weeks |
-| Phase 8 | FPGA Prototype and Validation | 4 weeks |
-
-**Total Estimated Duration:** ~42 weeks (10 months)
+    // All inputs passed through with wb_* prefix
+    output logic [31:0] wb_mem_rdata
+    output logic [31:0] wb_alu_result
+    output logic [4:0]  wb_rd_addr
+    output logic        wb_reg_write
+    output logic [1:0]  wb_wb_sel
+    output logic        wb_valid
+```
 
 ---
 
-## 13. Open Questions
+## 6. Module List Summary
 
-1. **Cache Size**: 16KB I-cache and 16KB D-cache - acceptable for target application?
-2. **BTB/BHT Size**: Current values (128/64 entries) - should we increase?
-3. **L2 Cache**: ~~Is L2 cache required? If yes, what size/associativity?~~ **RESOLVED: 256KB 8-way**
-4. **Hardware Multiply/Divide**: ~~Should div be iterative (slow) or pipelined (fast)?~~ **RESOLVED: Pipelined divider (5 cycles)**
-5. **Debug Module**: What debug features are required (trigger, trace)?
-6. **Performance Targets**: ~~Specific DMIPS or CoreMark targets?~~ **RESOLVED: 2-3 DMIPS/MHz**
-7. **Fabric Interface**: AXI, AHB, or custom? What width?
+| # | Module | Type | Description |
+|---|--------|------|-------------|
+| 1 | rv32i_core | top | Top-level wrapper |
+| 2 | if_stage | stage | Instruction fetch, PC logic |
+| 3 | id_stage | stage | Decode, regfile read, imm gen |
+| 4 | ex_stage | stage | ALU, branch resolution |
+| 5 | mem_stage | stage | Load/store, DMEM access |
+| 6 | wb_stage | stage | Write-back to regfile |
+| 7 | reg_file | unit | 32x32 register file |
+| 8 | alu | unit | Arithmetic logic unit |
+| 9 | imm_gen | unit | Immediate generator |
+| 10 | control_unit | unit | Main instruction decoder |
+| 11 | hazard_unit | unit | Hazard detection, forwarding, stall/flush |
+| 12 | if_id_reg | pipeline_reg | IF/ID pipeline register |
+| 13 | id_ex_reg | pipeline_reg | ID/EX pipeline register |
+| 14 | ex_mem_reg | pipeline_reg | EX/MEM pipeline register |
+| 15 | mem_wb_reg | pipeline_reg | MEM/WB pipeline register |
 
 ---
 
-## 14. Document History
+## 7. Instruction Support (RV32I)
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2026-04-26 | - | Initial version |
+All 37 standard RV32I instructions:
 
----
-
-*This specification is a living document and will be updated as design progresses.*
+| Type | Instructions |
+|------|-------------|
+| R-type | ADD, SUB, AND, OR, XOR, SLL, SRL, SRA, SLT, SLTU |
+| I-type | ADDI, ANDI, ORI, XORI, SLLI, SRLI, SRAI, SLTI, SLTIU, LB, LH, LW, LBU, LHU, JALR |
+| S-type | SB, SH, SW |
+| B-type | BEQ, BNE, BLT, BGE, BLTU, BGEU |
+| U-type | LUI, AUIPC |
+| J-type | JAL |

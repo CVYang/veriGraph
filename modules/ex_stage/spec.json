@@ -1,0 +1,258 @@
+{
+  "module_name": "ex_stage",
+  "type": "pipeline_stage",
+  "description": "Execute stage - ALU operation, branch resolution",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "ex_pc",
+      "direction": "input",
+      "width": 32,
+      "description": "PC from ID/EX register"
+    },
+    {
+      "name": "ex_rs1_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Source register 1 address from ID/EX"
+    },
+    {
+      "name": "ex_rs2_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Source register 2 address from ID/EX"
+    },
+    {
+      "name": "ex_rs1_data",
+      "direction": "input",
+      "width": 32,
+      "description": "Source register 1 data from ID/EX"
+    },
+    {
+      "name": "ex_rs2_data",
+      "direction": "input",
+      "width": 32,
+      "description": "Source register 2 data from ID/EX"
+    },
+    {
+      "name": "ex_imm",
+      "direction": "input",
+      "width": 32,
+      "description": "Immediate from ID/EX"
+    },
+    {
+      "name": "ex_rd_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Destination register address from ID/EX"
+    },
+    {
+      "name": "ex_alu_src",
+      "direction": "input",
+      "width": 1,
+      "description": "ALU source select from ID/EX"
+    },
+    {
+      "name": "ex_alu_op",
+      "direction": "input",
+      "width": 4,
+      "description": "ALU operation code from ID/EX"
+    },
+    {
+      "name": "ex_mem_read",
+      "direction": "input",
+      "width": 1,
+      "description": "Load enable from ID/EX"
+    },
+    {
+      "name": "ex_mem_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Store enable from ID/EX"
+    },
+    {
+      "name": "ex_funct3",
+      "direction": "input",
+      "width": 3,
+      "description": "funct3 from ID/EX"
+    },
+    {
+      "name": "ex_reg_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Register write enable from ID/EX"
+    },
+    {
+      "name": "ex_wb_sel",
+      "direction": "input",
+      "width": 2,
+      "description": "Write-back select from ID/EX"
+    },
+    {
+      "name": "ex_branch",
+      "direction": "input",
+      "width": 1,
+      "description": "Is branch from ID/EX"
+    },
+    {
+      "name": "ex_jump",
+      "direction": "input",
+      "width": 1,
+      "description": "Is JAL from ID/EX"
+    },
+    {
+      "name": "ex_jr",
+      "direction": "input",
+      "width": 1,
+      "description": "Is JALR from ID/EX"
+    },
+    {
+      "name": "ex_valid",
+      "direction": "input",
+      "width": 1,
+      "description": "Valid bit from ID/EX"
+    },
+    {
+      "name": "flush",
+      "direction": "input",
+      "width": 1,
+      "description": "Flush EX (from hazard_unit)"
+    },
+    {
+      "name": "fwd_alu_a",
+      "direction": "input",
+      "width": 2,
+      "description": "Forward select for ALU operand A: 00=regfile, 01=MEM, 10=WB"
+    },
+    {
+      "name": "fwd_alu_b",
+      "direction": "input",
+      "width": 2,
+      "description": "Forward select for ALU operand B: 00=regfile, 01=MEM, 10=WB"
+    },
+    {
+      "name": "fwd_mem_result",
+      "direction": "input",
+      "width": 32,
+      "description": "Forwarded result from MEM stage"
+    },
+    {
+      "name": "fwd_wb_result",
+      "direction": "input",
+      "width": 32,
+      "description": "Forwarded result from WB stage"
+    },
+    {
+      "name": "alu_a",
+      "direction": "output",
+      "width": 32,
+      "description": "ALU operand A"
+    },
+    {
+      "name": "alu_b",
+      "direction": "output",
+      "width": 32,
+      "description": "ALU operand B"
+    },
+    {
+      "name": "alu_op",
+      "direction": "output",
+      "width": 4,
+      "description": "ALU operation code"
+    },
+    {
+      "name": "alu_result",
+      "direction": "input",
+      "width": 32,
+      "description": "ALU result"
+    },
+    {
+      "name": "alu_zero",
+      "direction": "input",
+      "width": 1,
+      "description": "ALU zero flag"
+    },
+    {
+      "name": "branch_taken",
+      "direction": "output",
+      "width": 1,
+      "description": "Branch taken signal (to hazard_unit)"
+    },
+    {
+      "name": "branch_target",
+      "direction": "output",
+      "width": 32,
+      "description": "Branch target address (to if_stage)"
+    },
+    {
+      "name": "ex_alu_result",
+      "direction": "output",
+      "width": 32,
+      "description": "ALU result passed to EX/MEM register"
+    },
+    {
+      "name": "ex_mem_wdata",
+      "direction": "output",
+      "width": 32,
+      "description": "Store data (rs2 after forwarding) to EX/MEM"
+    },
+    {
+      "name": "ex_rd_addr_out",
+      "direction": "output",
+      "width": 5,
+      "description": "Destination register address to EX/MEM"
+    },
+    {
+      "name": "ex_mem_read_out",
+      "direction": "output",
+      "width": 1,
+      "description": "Load enable passed to EX/MEM"
+    },
+    {
+      "name": "ex_mem_write_out",
+      "direction": "output",
+      "width": 1,
+      "description": "Store enable passed to EX/MEM"
+    },
+    {
+      "name": "ex_funct3_out",
+      "direction": "output",
+      "width": 3,
+      "description": "funct3 passed to EX/MEM"
+    },
+    {
+      "name": "ex_reg_write_out",
+      "direction": "output",
+      "width": 1,
+      "description": "Register write enable passed to EX/MEM"
+    },
+    {
+      "name": "ex_wb_sel_out",
+      "direction": "output",
+      "width": 2,
+      "description": "Write-back select passed to EX/MEM"
+    },
+    {
+      "name": "ex_valid_out",
+      "direction": "output",
+      "width": 1,
+      "description": "Valid bit passed to EX/MEM"
+    }
+  ],
+  "functionality": "Performs arithmetic and logical operations by sending operands to the ALU. Uses forwarding multiplexers controlled by fwd_alu_a/fwd_alu_b to select among register file data, MEM stage result, and WB stage result for each operand, resolving data hazards. Resolves branch instructions by computing the branch condition (using ALU zero and logic) and target (PC + imm), then asserts branch_taken to the hazard unit. Passes ALU result, store data, destination register, and all control signals to the EX/MEM pipeline register. The stage can be flushed by upstream hazards/branch mispredictions.",
+  "dependencies": [
+    "alu",
+    "hazard_unit"
+  ]
+}

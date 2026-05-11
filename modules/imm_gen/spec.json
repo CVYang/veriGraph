@@ -1,0 +1,21 @@
+{
+  "module_name": "imm_gen",
+  "type": "functional_unit",
+  "description": "Extract and sign-extend immediate from instruction",
+  "ports": [
+    {
+      "name": "instr",
+      "direction": "input",
+      "width": 32,
+      "description": "32-bit instruction"
+    },
+    {
+      "name": "imm",
+      "direction": "output",
+      "width": 32,
+      "description": "32-bit sign-extended immediate"
+    }
+  ],
+  "functionality": "Examines the instruction opcode and extracts the immediate field according to the RISC-V specification. For I-type, sign-extends bit 31; for S-type, concatenates upper bits with lower bits; B-type includes zero as LSB; U-type places immediate in upper 20 bits; J-type uses a special encoding. Outputs the fully sign-extended 32-bit immediate value.",
+  "dependencies": []
+}

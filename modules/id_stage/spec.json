@@ -1,0 +1,188 @@
+{
+  "module_name": "id_stage",
+  "type": "pipeline_stage",
+  "description": "Instruction decode, register file read, immediate generation",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "id_pc",
+      "direction": "input",
+      "width": 32,
+      "description": "PC from IF/ID register"
+    },
+    {
+      "name": "id_instr",
+      "direction": "input",
+      "width": 32,
+      "description": "Instruction from IF/ID register"
+    },
+    {
+      "name": "id_valid",
+      "direction": "input",
+      "width": 1,
+      "description": "Valid bit from IF/ID register"
+    },
+    {
+      "name": "flush",
+      "direction": "input",
+      "width": 1,
+      "description": "Flush ID (from hazard_unit)"
+    },
+    {
+      "name": "rf_rs1_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Read address for source register 1"
+    },
+    {
+      "name": "rf_rs2_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Read address for source register 2"
+    },
+    {
+      "name": "rf_rs1_data",
+      "direction": "input",
+      "width": 32,
+      "description": "Read data from source register 1"
+    },
+    {
+      "name": "rf_rs2_data",
+      "direction": "input",
+      "width": 32,
+      "description": "Read data from source register 2"
+    },
+    {
+      "name": "id_rs1_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Source register 1 address (forwarded to hazard unit)"
+    },
+    {
+      "name": "id_rs2_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Source register 2 address (forwarded to hazard unit)"
+    },
+    {
+      "name": "id_rs1_data",
+      "direction": "output",
+      "width": 32,
+      "description": "Source register 1 data (to ID/EX)"
+    },
+    {
+      "name": "id_rs2_data",
+      "direction": "output",
+      "width": 32,
+      "description": "Source register 2 data (to ID/EX)"
+    },
+    {
+      "name": "id_imm",
+      "direction": "output",
+      "width": 32,
+      "description": "Immediate value (to ID/EX)"
+    },
+    {
+      "name": "id_rd_addr",
+      "direction": "output",
+      "width": 5,
+      "description": "Destination register address (to ID/EX)"
+    },
+    {
+      "name": "id_pc_out",
+      "direction": "output",
+      "width": 32,
+      "description": "PC passed through (to ID/EX)"
+    },
+    {
+      "name": "id_alu_src",
+      "direction": "output",
+      "width": 1,
+      "description": "ALU source select: 0=rs2, 1=imm"
+    },
+    {
+      "name": "id_alu_op",
+      "direction": "output",
+      "width": 4,
+      "description": "ALU operation code"
+    },
+    {
+      "name": "id_mem_read",
+      "direction": "output",
+      "width": 1,
+      "description": "Load enable"
+    },
+    {
+      "name": "id_mem_write",
+      "direction": "output",
+      "width": 1,
+      "description": "Store enable"
+    },
+    {
+      "name": "id_funct3",
+      "direction": "output",
+      "width": 3,
+      "description": "funct3 field for load/store size"
+    },
+    {
+      "name": "id_reg_write",
+      "direction": "output",
+      "width": 1,
+      "description": "Register file write enable"
+    },
+    {
+      "name": "id_wb_sel",
+      "direction": "output",
+      "width": 2,
+      "description": "Write-back select: 00=ALU, 01=MEM, 10=PC+4"
+    },
+    {
+      "name": "id_branch",
+      "direction": "output",
+      "width": 1,
+      "description": "Is branch instruction"
+    },
+    {
+      "name": "id_jump",
+      "direction": "output",
+      "width": 1,
+      "description": "Is JAL instruction"
+    },
+    {
+      "name": "id_jr",
+      "direction": "output",
+      "width": 1,
+      "description": "Is JALR instruction"
+    },
+    {
+      "name": "id_pc_redirect",
+      "direction": "output",
+      "width": 1,
+      "description": "PC redirect for jumps (JAL/JALR resolved in ID)"
+    },
+    {
+      "name": "id_pc_target",
+      "direction": "output",
+      "width": 32,
+      "description": "Jump target address (PC+imm or rs1+imm)"
+    }
+  ],
+  "functionality": "Decodes the instruction from the IF/ID register. Uses the immediate generator (imm_gen) to extract the immediate field and the control unit to produce main control signals. Reads source registers from the register file via rf_rs1_addr/rf_rs2_addr. For JAL and JALR, calculates the target address in this stage and asserts id_pc_redirect to fetch the target. Flushes on taken branches or jumps. Outputs decoded fields, register data, immediate, and control signals to the ID/EX pipeline register.",
+  "dependencies": [
+    "control_unit",
+    "imm_gen",
+    "reg_file",
+    "hazard_unit"
+  ]
+}

@@ -1,0 +1,1789 @@
+{
+  "modules": [
+    {
+      "module_name": "rv32i_core",
+      "type": "top",
+      "description": "Top-level wrapper instantiating all submodules and connecting pipeline stages",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "imem_addr",
+          "direction": "output",
+          "width": 32,
+          "description": "Instruction memory address"
+        },
+        {
+          "name": "imem_rdata",
+          "direction": "input",
+          "width": 32,
+          "description": "Instruction memory read data"
+        },
+        {
+          "name": "imem_req",
+          "direction": "output",
+          "width": 1,
+          "description": "Instruction memory request"
+        },
+        {
+          "name": "dmem_addr",
+          "direction": "output",
+          "width": 32,
+          "description": "Data memory address"
+        },
+        {
+          "name": "dmem_wdata",
+          "direction": "output",
+          "width": 32,
+          "description": "Data memory write data"
+        },
+        {
+          "name": "dmem_rdata",
+          "direction": "input",
+          "width": 32,
+          "description": "Data memory read data"
+        },
+        {
+          "name": "dmem_req",
+          "direction": "output",
+          "width": 1,
+          "description": "Data memory request"
+        },
+        {
+          "name": "dmem_we",
+          "direction": "output",
+          "width": 1,
+          "description": "Data memory write enable (1=write, 0=read)"
+        },
+        {
+          "name": "dmem_be",
+          "direction": "output",
+          "width": 4,
+          "description": "Data memory byte enable"
+        }
+      ],
+      "functionality": "Instantiates and interconnects the IF, ID, EX, MEM, WB pipeline stages, register file, ALU, immediate generator, control unit, hazard unit, and four pipeline registers to form a complete RV32I single-issue in-order core. Connects all stage outputs/inputs to pipeline registers and control signals between hazard unit and stages. Provides direct interfaces to instruction and data memories (single-cycle).",
+      "dependencies": [
+        "if_stage",
+        "id_stage",
+        "ex_stage",
+        "mem_stage",
+        "wb_stage",
+        "reg_file",
+        "alu",
+        "imm_gen",
+        "control_unit",
+        "hazard_unit",
+        "if_id_reg",
+        "id_ex_reg",
+        "ex_mem_reg",
+        "mem_wb_reg"
+      ]
+    },
+    {
+      "module_name": "if_stage",
+      "type": "pipeline_stage",
+      "description": "Instruction fetch stage - generates PC and fetches from IMEM",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "stall",
+          "direction": "input",
+          "width": 1,
+          "description": "Stall IF (from hazard_unit)"
+        },
+        {
+          "name": "flush",
+          "direction": "input",
+          "width": 1,
+          "description": "Flush IF (from branch/jump)"
+        },
+        {
+          "name": "pc_redirect",
+          "direction": "input",
+          "width": 1,
+          "description": "PC redirect enable (from EX for branch, from ID for JAL/JALR)"
+        },
+        {
+          "name": "pc_target",
+          "direction": "input",
+          "width": 32,
+          "description": "New PC value when redirecting"
+        },
+        {
+          "name": "imem_addr",
+          "direction": "output",
+          "width": 32,
+          "description": "Instruction memory address"
+        },
+        {
+          "name": "imem_rdata",
+          "direction": "input",
+          "width": 32,
+          "description": "Instruction memory read data"
+        },
+        {
+          "name": "imem_req",
+          "direction": "output",
+          "width": 1,
+          "description": "Instruction memory request"
+        },
+        {
+          "name": "if_pc",
+          "direction": "output",
+          "width": 32,
+          "description": "Current PC sent to IF/ID pipeline register"
+        },
+        {
+          "name": "if_instr",
+          "direction": "output",
+          "width": 32,
+          "description": "Fetched instruction sent to IF/ID pipeline register"
+        },
+        {
+          "name": "if_valid",
+          "direction": "output",
+          "width": 1,
+          "description": "Instruction valid signal sent to IF/ID pipeline register"
+        }
+      ],
+      "functionality": "Manages the program counter (PC) to fetch instructions from the instruction memory. On reset, PC is initialized; otherwise, on each cycle without stall, the PC updates to pc_target if pc_redirect is asserted (branches or jumps), or increments by 4. Stalls hold the PC and output; flushes invalidate the current instruction (if_valid = 0). Outputs the current PC, fetched instruction, and a valid flag to the IF/ID register.",
+      "dependencies": [
+        "hazard_unit",
+        "id_stage",
+        "ex_stage"
+      ]
+    },
+    {
+      "module_name": "id_stage",
+      "type": "pipeline_stage",
+      "description": "Instruction decode, register file read, immediate generation",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "id_pc",
+          "direction": "input",
+          "width": 32,
+          "description": "PC from IF/ID register"
+        },
+        {
+          "name": "id_instr",
+          "direction": "input",
+          "width": 32,
+          "description": "Instruction from IF/ID register"
+        },
+        {
+          "name": "id_valid",
+          "direction": "input",
+          "width": 1,
+          "description": "Valid bit from IF/ID register"
+        },
+        {
+          "name": "flush",
+          "direction": "input",
+          "width": 1,
+          "description": "Flush ID (from hazard_unit)"
+        },
+        {
+          "name": "rf_rs1_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Read address for source register 1"
+        },
+        {
+          "name": "rf_rs2_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Read address for source register 2"
+        },
+        {
+          "name": "rf_rs1_data",
+          "direction": "input",
+          "width": 32,
+          "description": "Read data from source register 1"
+        },
+        {
+          "name": "rf_rs2_data",
+          "direction": "input",
+          "width": 32,
+          "description": "Read data from source register 2"
+        },
+        {
+          "name": "id_rs1_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Source register 1 address (forwarded to hazard unit)"
+        },
+        {
+          "name": "id_rs2_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Source register 2 address (forwarded to hazard unit)"
+        },
+        {
+          "name": "id_rs1_data",
+          "direction": "output",
+          "width": 32,
+          "description": "Source register 1 data (to ID/EX)"
+        },
+        {
+          "name": "id_rs2_data",
+          "direction": "output",
+          "width": 32,
+          "description": "Source register 2 data (to ID/EX)"
+        },
+        {
+          "name": "id_imm",
+          "direction": "output",
+          "width": 32,
+          "description": "Immediate value (to ID/EX)"
+        },
+        {
+          "name": "id_rd_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Destination register address (to ID/EX)"
+        },
+        {
+          "name": "id_pc_out",
+          "direction": "output",
+          "width": 32,
+          "description": "PC passed through (to ID/EX)"
+        },
+        {
+          "name": "id_alu_src",
+          "direction": "output",
+          "width": 1,
+          "description": "ALU source select: 0=rs2, 1=imm"
+        },
+        {
+          "name": "id_alu_op",
+          "direction": "output",
+          "width": 4,
+          "description": "ALU operation code"
+        },
+        {
+          "name": "id_mem_read",
+          "direction": "output",
+          "width": 1,
+          "description": "Load enable"
+        },
+        {
+          "name": "id_mem_write",
+          "direction": "output",
+          "width": 1,
+          "description": "Store enable"
+        },
+        {
+          "name": "id_funct3",
+          "direction": "output",
+          "width": 3,
+          "description": "funct3 field for load/store size"
+        },
+        {
+          "name": "id_reg_write",
+          "direction": "output",
+          "width": 1,
+          "description": "Register file write enable"
+        },
+        {
+          "name": "id_wb_sel",
+          "direction": "output",
+          "width": 2,
+          "description": "Write-back select: 00=ALU, 01=MEM, 10=PC+4"
+        },
+        {
+          "name": "id_branch",
+          "direction": "output",
+          "width": 1,
+          "description": "Is branch instruction"
+        },
+        {
+          "name": "id_jump",
+          "direction": "output",
+          "width": 1,
+          "description": "Is JAL instruction"
+        },
+        {
+          "name": "id_jr",
+          "direction": "output",
+          "width": 1,
+          "description": "Is JALR instruction"
+        },
+        {
+          "name": "id_pc_redirect",
+          "direction": "output",
+          "width": 1,
+          "description": "PC redirect for jumps (JAL/JALR resolved in ID)"
+        },
+        {
+          "name": "id_pc_target",
+          "direction": "output",
+          "width": 32,
+          "description": "Jump target address (PC+imm or rs1+imm)"
+        }
+      ],
+      "functionality": "Decodes the instruction from the IF/ID register. Uses the immediate generator (imm_gen) to extract the immediate field and the control unit to produce main control signals. Reads source registers from the register file via rf_rs1_addr/rf_rs2_addr. For JAL and JALR, calculates the target address in this stage and asserts id_pc_redirect to fetch the target. Flushes on taken branches or jumps. Outputs decoded fields, register data, immediate, and control signals to the ID/EX pipeline register.",
+      "dependencies": [
+        "control_unit",
+        "imm_gen",
+        "reg_file",
+        "hazard_unit"
+      ]
+    },
+    {
+      "module_name": "ex_stage",
+      "type": "pipeline_stage",
+      "description": "Execute stage - ALU operation, branch resolution",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "ex_pc",
+          "direction": "input",
+          "width": 32,
+          "description": "PC from ID/EX register"
+        },
+        {
+          "name": "ex_rs1_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Source register 1 address from ID/EX"
+        },
+        {
+          "name": "ex_rs2_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Source register 2 address from ID/EX"
+        },
+        {
+          "name": "ex_rs1_data",
+          "direction": "input",
+          "width": 32,
+          "description": "Source register 1 data from ID/EX"
+        },
+        {
+          "name": "ex_rs2_data",
+          "direction": "input",
+          "width": 32,
+          "description": "Source register 2 data from ID/EX"
+        },
+        {
+          "name": "ex_imm",
+          "direction": "input",
+          "width": 32,
+          "description": "Immediate from ID/EX"
+        },
+        {
+          "name": "ex_rd_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Destination register address from ID/EX"
+        },
+        {
+          "name": "ex_alu_src",
+          "direction": "input",
+          "width": 1,
+          "description": "ALU source select from ID/EX"
+        },
+        {
+          "name": "ex_alu_op",
+          "direction": "input",
+          "width": 4,
+          "description": "ALU operation code from ID/EX"
+        },
+        {
+          "name": "ex_mem_read",
+          "direction": "input",
+          "width": 1,
+          "description": "Load enable from ID/EX"
+        },
+        {
+          "name": "ex_mem_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Store enable from ID/EX"
+        },
+        {
+          "name": "ex_funct3",
+          "direction": "input",
+          "width": 3,
+          "description": "funct3 from ID/EX"
+        },
+        {
+          "name": "ex_reg_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Register write enable from ID/EX"
+        },
+        {
+          "name": "ex_wb_sel",
+          "direction": "input",
+          "width": 2,
+          "description": "Write-back select from ID/EX"
+        },
+        {
+          "name": "ex_branch",
+          "direction": "input",
+          "width": 1,
+          "description": "Is branch from ID/EX"
+        },
+        {
+          "name": "ex_jump",
+          "direction": "input",
+          "width": 1,
+          "description": "Is JAL from ID/EX"
+        },
+        {
+          "name": "ex_jr",
+          "direction": "input",
+          "width": 1,
+          "description": "Is JALR from ID/EX"
+        },
+        {
+          "name": "ex_valid",
+          "direction": "input",
+          "width": 1,
+          "description": "Valid bit from ID/EX"
+        },
+        {
+          "name": "flush",
+          "direction": "input",
+          "width": 1,
+          "description": "Flush EX (from hazard_unit)"
+        },
+        {
+          "name": "fwd_alu_a",
+          "direction": "input",
+          "width": 2,
+          "description": "Forward select for ALU operand A: 00=regfile, 01=MEM, 10=WB"
+        },
+        {
+          "name": "fwd_alu_b",
+          "direction": "input",
+          "width": 2,
+          "description": "Forward select for ALU operand B: 00=regfile, 01=MEM, 10=WB"
+        },
+        {
+          "name": "fwd_mem_result",
+          "direction": "input",
+          "width": 32,
+          "description": "Forwarded result from MEM stage"
+        },
+        {
+          "name": "fwd_wb_result",
+          "direction": "input",
+          "width": 32,
+          "description": "Forwarded result from WB stage"
+        },
+        {
+          "name": "alu_a",
+          "direction": "output",
+          "width": 32,
+          "description": "ALU operand A"
+        },
+        {
+          "name": "alu_b",
+          "direction": "output",
+          "width": 32,
+          "description": "ALU operand B"
+        },
+        {
+          "name": "alu_op",
+          "direction": "output",
+          "width": 4,
+          "description": "ALU operation code"
+        },
+        {
+          "name": "alu_result",
+          "direction": "input",
+          "width": 32,
+          "description": "ALU result"
+        },
+        {
+          "name": "alu_zero",
+          "direction": "input",
+          "width": 1,
+          "description": "ALU zero flag"
+        },
+        {
+          "name": "branch_taken",
+          "direction": "output",
+          "width": 1,
+          "description": "Branch taken signal (to hazard_unit)"
+        },
+        {
+          "name": "branch_target",
+          "direction": "output",
+          "width": 32,
+          "description": "Branch target address (to if_stage)"
+        },
+        {
+          "name": "ex_alu_result",
+          "direction": "output",
+          "width": 32,
+          "description": "ALU result passed to EX/MEM register"
+        },
+        {
+          "name": "ex_mem_wdata",
+          "direction": "output",
+          "width": 32,
+          "description": "Store data (rs2 after forwarding) to EX/MEM"
+        },
+        {
+          "name": "ex_rd_addr_out",
+          "direction": "output",
+          "width": 5,
+          "description": "Destination register address to EX/MEM"
+        },
+        {
+          "name": "ex_mem_read_out",
+          "direction": "output",
+          "width": 1,
+          "description": "Load enable passed to EX/MEM"
+        },
+        {
+          "name": "ex_mem_write_out",
+          "direction": "output",
+          "width": 1,
+          "description": "Store enable passed to EX/MEM"
+        },
+        {
+          "name": "ex_funct3_out",
+          "direction": "output",
+          "width": 3,
+          "description": "funct3 passed to EX/MEM"
+        },
+        {
+          "name": "ex_reg_write_out",
+          "direction": "output",
+          "width": 1,
+          "description": "Register write enable passed to EX/MEM"
+        },
+        {
+          "name": "ex_wb_sel_out",
+          "direction": "output",
+          "width": 2,
+          "description": "Write-back select passed to EX/MEM"
+        },
+        {
+          "name": "ex_valid_out",
+          "direction": "output",
+          "width": 1,
+          "description": "Valid bit passed to EX/MEM"
+        }
+      ],
+      "functionality": "Performs arithmetic and logical operations by sending operands to the ALU. Uses forwarding multiplexers controlled by fwd_alu_a/fwd_alu_b to select among register file data, MEM stage result, and WB stage result for each operand, resolving data hazards. Resolves branch instructions by computing the branch condition (using ALU zero and logic) and target (PC + imm), then asserts branch_taken to the hazard unit. Passes ALU result, store data, destination register, and all control signals to the EX/MEM pipeline register. The stage can be flushed by upstream hazards/branch mispredictions.",
+      "dependencies": [
+        "alu",
+        "hazard_unit"
+      ]
+    },
+    {
+      "module_name": "mem_stage",
+      "type": "pipeline_stage",
+      "description": "Memory access stage - load/store via DMEM",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "mem_alu_result",
+          "direction": "input",
+          "width": 32,
+          "description": "ALU result from EX/MEM register (address for load/store)"
+        },
+        {
+          "name": "mem_wdata",
+          "direction": "input",
+          "width": 32,
+          "description": "Store data from EX/MEM register"
+        },
+        {
+          "name": "mem_rd_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Destination register address from EX/MEM"
+        },
+        {
+          "name": "mem_read",
+          "direction": "input",
+          "width": 1,
+          "description": "Load enable from EX/MEM"
+        },
+        {
+          "name": "mem_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Store enable from EX/MEM"
+        },
+        {
+          "name": "mem_funct3",
+          "direction": "input",
+          "width": 3,
+          "description": "funct3 from EX/MEM (specifies load/store size/extension)"
+        },
+        {
+          "name": "mem_reg_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Register write enable from EX/MEM"
+        },
+        {
+          "name": "mem_wb_sel",
+          "direction": "input",
+          "width": 2,
+          "description": "Write-back select from EX/MEM"
+        },
+        {
+          "name": "mem_valid",
+          "direction": "input",
+          "width": 1,
+          "description": "Valid bit from EX/MEM"
+        },
+        {
+          "name": "dmem_addr",
+          "direction": "output",
+          "width": 32,
+          "description": "Data memory address"
+        },
+        {
+          "name": "dmem_wdata",
+          "direction": "output",
+          "width": 32,
+          "description": "Data memory write data"
+        },
+        {
+          "name": "dmem_rdata",
+          "direction": "input",
+          "width": 32,
+          "description": "Data memory read data"
+        },
+        {
+          "name": "dmem_req",
+          "direction": "output",
+          "width": 1,
+          "description": "Data memory request"
+        },
+        {
+          "name": "dmem_we",
+          "direction": "output",
+          "width": 1,
+          "description": "Data memory write enable"
+        },
+        {
+          "name": "dmem_be",
+          "direction": "output",
+          "width": 4,
+          "description": "Data memory byte enable"
+        },
+        {
+          "name": "mem_rdata",
+          "direction": "output",
+          "width": 32,
+          "description": "Load data (aligned and sign-extended) to MEM/WB"
+        },
+        {
+          "name": "mem_alu_out",
+          "direction": "output",
+          "width": 32,
+          "description": "ALU result passthrough to MEM/WB"
+        },
+        {
+          "name": "mem_rd_addr_out",
+          "direction": "output",
+          "width": 5,
+          "description": "Destination register address to MEM/WB"
+        },
+        {
+          "name": "mem_reg_write_out",
+          "direction": "output",
+          "width": 1,
+          "description": "Register write enable to MEM/WB"
+        },
+        {
+          "name": "mem_wb_sel_out",
+          "direction": "output",
+          "width": 2,
+          "description": "Write-back select to MEM/WB"
+        },
+        {
+          "name": "mem_valid_out",
+          "direction": "output",
+          "width": 1,
+          "description": "Valid bit to MEM/WB"
+        }
+      ],
+      "functionality": "Handles all data memory operations. For loads (mem_read=1), sends the ALU result as address to DMEM, captures read data, then performs alignment and sign-extension according to mem_funct3 (LB, LH, LW, LBU, LHU). For stores (mem_write=1), sends address and write data with appropriate byte enable derived from mem_funct3 (SB, SH, SW). The ALU result is passed through to the MEM/WB register alongside the load result, destination register, and control signals for write-back.",
+      "dependencies": []
+    },
+    {
+      "module_name": "wb_stage",
+      "type": "pipeline_stage",
+      "description": "Write-back stage - writes result to register file",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "wb_mem_rdata",
+          "direction": "input",
+          "width": 32,
+          "description": "Load data from MEM/WB register"
+        },
+        {
+          "name": "wb_alu_result",
+          "direction": "input",
+          "width": 32,
+          "description": "ALU result from MEM/WB register"
+        },
+        {
+          "name": "wb_rd_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Destination register address from MEM/WB"
+        },
+        {
+          "name": "wb_reg_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Register write enable from MEM/WB"
+        },
+        {
+          "name": "wb_wb_sel",
+          "direction": "input",
+          "width": 2,
+          "description": "Write-back select from MEM/WB (00=ALU, 01=MEM, 10=PC+4)"
+        },
+        {
+          "name": "wb_valid",
+          "direction": "input",
+          "width": 1,
+          "description": "Valid bit from MEM/WB"
+        },
+        {
+          "name": "rf_waddr",
+          "direction": "output",
+          "width": 5,
+          "description": "Register file write address"
+        },
+        {
+          "name": "rf_wdata",
+          "direction": "output",
+          "width": 32,
+          "description": "Register file write data"
+        },
+        {
+          "name": "rf_we",
+          "direction": "output",
+          "width": 1,
+          "description": "Register file write enable"
+        },
+        {
+          "name": "wb_result",
+          "direction": "output",
+          "width": 32,
+          "description": "Final write-back result (forwarded to hazard_unit)"
+        }
+      ],
+      "functionality": "Selects the final result from either the ALU output, memory load data, or PC+4 based on wb_wb_sel. If wb_reg_write is asserted and the instruction is valid, writes the selected result to the register file at wb_rd_addr. Outputs the write address, data, and enable to the register file, and also forwards the final result to the hazard unit for data forwarding to earlier stages.",
+      "dependencies": [
+        "reg_file"
+      ]
+    },
+    {
+      "module_name": "reg_file",
+      "type": "functional_unit",
+      "description": "32 x 32-bit general purpose register file (x0 hardwired to 0)",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "rs1_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Read address 1"
+        },
+        {
+          "name": "rs2_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Read address 2"
+        },
+        {
+          "name": "rs1_data",
+          "direction": "output",
+          "width": 32,
+          "description": "Read data 1"
+        },
+        {
+          "name": "rs2_data",
+          "direction": "output",
+          "width": 32,
+          "description": "Read data 2"
+        },
+        {
+          "name": "waddr",
+          "direction": "input",
+          "width": 5,
+          "description": "Write address"
+        },
+        {
+          "name": "wdata",
+          "direction": "input",
+          "width": 32,
+          "description": "Write data"
+        },
+        {
+          "name": "we",
+          "direction": "input",
+          "width": 1,
+          "description": "Write enable"
+        }
+      ],
+      "functionality": "Implements the 32 general-purpose integer registers specified by RV32I. Register x0 is hardwired to zero: reads always return 0, writes to x0 are ignored. Two asynchronous read ports provide rs1_data and rs2_data combinationally from the address on rs1_addr/rs2_addr. The synchronous write port writes wdata to the register at waddr on the rising edge of clk when we is high (and waddr != 0). On reset, all registers (except x0) are cleared to zero.",
+      "dependencies": []
+    },
+    {
+      "module_name": "alu",
+      "type": "functional_unit",
+      "description": "Arithmetic and logic unit for RV32I operations",
+      "ports": [
+        {
+          "name": "a",
+          "direction": "input",
+          "width": 32,
+          "description": "Operand A"
+        },
+        {
+          "name": "b",
+          "direction": "input",
+          "width": 32,
+          "description": "Operand B"
+        },
+        {
+          "name": "op",
+          "direction": "input",
+          "width": 4,
+          "description": "Operation code (0:ADD, 1:SUB, 2:SLL, 3:SLT, 4:SLTU, 5:XOR, 6:SRL, 7:SRA, 8:OR, 9:AND)"
+        },
+        {
+          "name": "result",
+          "direction": "output",
+          "width": 32,
+          "description": "32-bit result of the operation"
+        },
+        {
+          "name": "zero",
+          "direction": "output",
+          "width": 1,
+          "description": "Zero flag, asserted when result equals zero"
+        }
+      ],
+      "functionality": "Performs arithmetic and logical operations on 32-bit operands A and B as selected by op. For shift operations SLL, SRL, SRA only the lower 5 bits of B are used as shift amount. SLT performs signed comparison; SLTU performs unsigned comparison. Outputs the computed result and a zero flag (result == 0). All operations are combinational.",
+      "dependencies": []
+    },
+    {
+      "module_name": "imm_gen",
+      "type": "functional_unit",
+      "description": "Extract and sign-extend immediate from instruction",
+      "ports": [
+        {
+          "name": "instr",
+          "direction": "input",
+          "width": 32,
+          "description": "32-bit instruction"
+        },
+        {
+          "name": "imm",
+          "direction": "output",
+          "width": 32,
+          "description": "32-bit sign-extended immediate"
+        }
+      ],
+      "functionality": "Examines the instruction opcode and extracts the immediate field according to the RISC-V specification. For I-type, sign-extends bit 31; for S-type, concatenates upper bits with lower bits; B-type includes zero as LSB; U-type places immediate in upper 20 bits; J-type uses a special encoding. Outputs the fully sign-extended 32-bit immediate value.",
+      "dependencies": []
+    },
+    {
+      "module_name": "control_unit",
+      "type": "control",
+      "description": "Decode instruction and generate control signals",
+      "ports": [
+        {
+          "name": "instr",
+          "direction": "input",
+          "width": 32,
+          "description": "32-bit instruction"
+        },
+        {
+          "name": "alu_src",
+          "direction": "output",
+          "width": 1,
+          "description": "ALU source select: 0=rs2, 1=imm"
+        },
+        {
+          "name": "alu_op",
+          "direction": "output",
+          "width": 4,
+          "description": "ALU operation code"
+        },
+        {
+          "name": "mem_read",
+          "direction": "output",
+          "width": 1,
+          "description": "Load enable"
+        },
+        {
+          "name": "mem_write",
+          "direction": "output",
+          "width": 1,
+          "description": "Store enable"
+        },
+        {
+          "name": "reg_write",
+          "direction": "output",
+          "width": 1,
+          "description": "Register file write enable"
+        },
+        {
+          "name": "wb_sel",
+          "direction": "output",
+          "width": 2,
+          "description": "Write-back select: 00=ALU, 01=MEM, 10=PC+4"
+        },
+        {
+          "name": "branch",
+          "direction": "output",
+          "width": 1,
+          "description": "Is branch (B-type) instruction"
+        },
+        {
+          "name": "jump",
+          "direction": "output",
+          "width": 1,
+          "description": "Is JAL (J-type) instruction"
+        },
+        {
+          "name": "jr",
+          "direction": "output",
+          "width": 1,
+          "description": "Is JALR (I-type) instruction"
+        },
+        {
+          "name": "is_load",
+          "direction": "output",
+          "width": 1,
+          "description": "Is load instruction"
+        },
+        {
+          "name": "is_store",
+          "direction": "output",
+          "width": 1,
+          "description": "Is store instruction"
+        },
+        {
+          "name": "funct3",
+          "direction": "output",
+          "width": 3,
+          "description": "funct3 field from instruction"
+        }
+      ],
+      "functionality": "Combinationally decodes the 32-bit RISC-V instruction to generate all datapath control signals. Identifies instruction type (R, I, S, B, U, J) from opcode and funct3/funct7, and produces appropriate ALU operation code, register write enable, memory enable signals, branch/jump flags, and write-back select. Supports all 37 RV32I instructions.",
+      "dependencies": []
+    },
+    {
+      "module_name": "hazard_unit",
+      "type": "control",
+      "description": "Detect hazards and generate stall/flush/forwarding signals",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "id_rs1_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Source register 1 from ID stage"
+        },
+        {
+          "name": "id_rs2_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Source register 2 from ID stage"
+        },
+        {
+          "name": "id_branch",
+          "direction": "input",
+          "width": 1,
+          "description": "ID stage is branch"
+        },
+        {
+          "name": "id_jump",
+          "direction": "input",
+          "width": 1,
+          "description": "ID stage is JAL"
+        },
+        {
+          "name": "id_jr",
+          "direction": "input",
+          "width": 1,
+          "description": "ID stage is JALR"
+        },
+        {
+          "name": "ex_rd_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Destination register in EX stage"
+        },
+        {
+          "name": "ex_mem_read",
+          "direction": "input",
+          "width": 1,
+          "description": "EX stage has load instruction"
+        },
+        {
+          "name": "ex_reg_write",
+          "direction": "input",
+          "width": 1,
+          "description": "EX stage will write register"
+        },
+        {
+          "name": "mem_rd_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Destination register in MEM stage"
+        },
+        {
+          "name": "mem_reg_write",
+          "direction": "input",
+          "width": 1,
+          "description": "MEM stage will write register"
+        },
+        {
+          "name": "mem_result",
+          "direction": "input",
+          "width": 32,
+          "description": "Result from MEM stage (for forwarding)"
+        },
+        {
+          "name": "wb_rd_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Destination register in WB stage"
+        },
+        {
+          "name": "wb_reg_write",
+          "direction": "input",
+          "width": 1,
+          "description": "WB stage will write register"
+        },
+        {
+          "name": "wb_result",
+          "direction": "input",
+          "width": 32,
+          "description": "Result from WB stage (for forwarding)"
+        },
+        {
+          "name": "branch_taken",
+          "direction": "input",
+          "width": 1,
+          "description": "Branch resolved taken from EX stage"
+        },
+        {
+          "name": "jump_taken",
+          "direction": "input",
+          "width": 1,
+          "description": "Jump taken from ID stage (pc_redirect)"
+        },
+        {
+          "name": "stall_if",
+          "direction": "output",
+          "width": 1,
+          "description": "Stall IF stage"
+        },
+        {
+          "name": "stall_id",
+          "direction": "output",
+          "width": 1,
+          "description": "Stall ID stage"
+        },
+        {
+          "name": "flush_if",
+          "direction": "output",
+          "width": 1,
+          "description": "Flush IF stage"
+        },
+        {
+          "name": "flush_id",
+          "direction": "output",
+          "width": 1,
+          "description": "Flush ID stage"
+        },
+        {
+          "name": "flush_ex",
+          "direction": "output",
+          "width": 1,
+          "description": "Flush EX stage"
+        },
+        {
+          "name": "fwd_alu_a",
+          "direction": "output",
+          "width": 2,
+          "description": "Forwarding select for ALU input A: 00=regfile, 01=MEM, 10=WB"
+        },
+        {
+          "name": "fwd_alu_b",
+          "direction": "output",
+          "width": 2,
+          "description": "Forwarding select for ALU input B: 00=regfile, 01=MEM, 10=WB"
+        },
+        {
+          "name": "fwd_mem_result",
+          "direction": "output",
+          "width": 32,
+          "description": "Forwarded data from MEM stage to EX"
+        },
+        {
+          "name": "fwd_wb_result",
+          "direction": "output",
+          "width": 32,
+          "description": "Forwarded data from WB stage to EX"
+        }
+      ],
+      "functionality": "Detects all pipeline hazards and generates appropriate stall and flush signals. For data hazards, compares source register addresses of instructions in ID/EX with destination register addresses of instructions in EX, MEM, and WB. If a later instruction has a pending write to a register needed by an earlier instruction, forwarding is selected (fwd_alu_a/b) using the appropriate MEM or WB result. For load-use hazards (a load instruction in EX followed by an instruction in ID that uses its result), the pipeline is stalled (stall_if, stall_id) for one cycle. For control hazards (branches/jumps), when a branch is taken (branch_taken) or a jump is in ID (jump_taken), instructions in IF and ID are flushed (flush_if, flush_id). Also flushes EX if necessary. The unit also passes the forwarded data values from MEM and WB stages directly to the EX stage.",
+      "dependencies": [
+        "id_stage",
+        "ex_stage",
+        "mem_stage",
+        "wb_stage"
+      ]
+    },
+    {
+      "module_name": "if_id_reg",
+      "type": "pipeline_register",
+      "description": "Pipeline register between IF and ID stages",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "flush",
+          "direction": "input",
+          "width": 1,
+          "description": "Flush signal (invalidates output)"
+        },
+        {
+          "name": "stall",
+          "direction": "input",
+          "width": 1,
+          "description": "Stall signal (holds current value)"
+        },
+        {
+          "name": "if_pc",
+          "direction": "input",
+          "width": 32,
+          "description": "PC from IF stage"
+        },
+        {
+          "name": "if_instr",
+          "direction": "input",
+          "width": 32,
+          "description": "Instruction from IF stage"
+        },
+        {
+          "name": "if_valid",
+          "direction": "input",
+          "width": 1,
+          "description": "Valid from IF stage"
+        },
+        {
+          "name": "id_pc",
+          "direction": "output",
+          "width": 32,
+          "description": "PC to ID stage"
+        },
+        {
+          "name": "id_instr",
+          "direction": "output",
+          "width": 32,
+          "description": "Instruction to ID stage"
+        },
+        {
+          "name": "id_valid",
+          "direction": "output",
+          "width": 1,
+          "description": "Valid to ID stage"
+        }
+      ],
+      "functionality": "Captures IF stage outputs (PC, instruction, valid) on the rising edge of clk when stall is deasserted. On reset, outputs are cleared. On flush, the valid bit is cleared, effectively turning the instruction into a NOP. On stall, the register holds its current value, preserving the instruction for the next cycle.",
+      "dependencies": []
+    },
+    {
+      "module_name": "id_ex_reg",
+      "type": "pipeline_register",
+      "description": "Pipeline register between ID and EX stages",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "flush",
+          "direction": "input",
+          "width": 1,
+          "description": "Flush signal"
+        },
+        {
+          "name": "id_rs1_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Source register 1 address from ID"
+        },
+        {
+          "name": "id_rs2_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Source register 2 address from ID"
+        },
+        {
+          "name": "id_rs1_data",
+          "direction": "input",
+          "width": 32,
+          "description": "Source register 1 data from ID"
+        },
+        {
+          "name": "id_rs2_data",
+          "direction": "input",
+          "width": 32,
+          "description": "Source register 2 data from ID"
+        },
+        {
+          "name": "id_imm",
+          "direction": "input",
+          "width": 32,
+          "description": "Immediate from ID"
+        },
+        {
+          "name": "id_rd_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Destination register address from ID"
+        },
+        {
+          "name": "id_pc",
+          "direction": "input",
+          "width": 32,
+          "description": "PC from ID"
+        },
+        {
+          "name": "id_alu_src",
+          "direction": "input",
+          "width": 1,
+          "description": "ALU source select from ID"
+        },
+        {
+          "name": "id_alu_op",
+          "direction": "input",
+          "width": 4,
+          "description": "ALU operation code from ID"
+        },
+        {
+          "name": "id_mem_read",
+          "direction": "input",
+          "width": 1,
+          "description": "Load enable from ID"
+        },
+        {
+          "name": "id_mem_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Store enable from ID"
+        },
+        {
+          "name": "id_funct3",
+          "direction": "input",
+          "width": 3,
+          "description": "funct3 from ID"
+        },
+        {
+          "name": "id_reg_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Register write enable from ID"
+        },
+        {
+          "name": "id_wb_sel",
+          "direction": "input",
+          "width": 2,
+          "description": "Write-back select from ID"
+        },
+        {
+          "name": "id_branch",
+          "direction": "input",
+          "width": 1,
+          "description": "Branch flag from ID"
+        },
+        {
+          "name": "id_jump",
+          "direction": "input",
+          "width": 1,
+          "description": "JAL flag from ID"
+        },
+        {
+          "name": "id_jr",
+          "direction": "input",
+          "width": 1,
+          "description": "JALR flag from ID"
+        },
+        {
+          "name": "id_valid",
+          "direction": "input",
+          "width": 1,
+          "description": "Valid from ID"
+        },
+        {
+          "name": "ex_rs1_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Source register 1 address to EX"
+        },
+        {
+          "name": "ex_rs2_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Source register 2 address to EX"
+        },
+        {
+          "name": "ex_rs1_data",
+          "direction": "output",
+          "width": 32,
+          "description": "Source register 1 data to EX"
+        },
+        {
+          "name": "ex_rs2_data",
+          "direction": "output",
+          "width": 32,
+          "description": "Source register 2 data to EX"
+        },
+        {
+          "name": "ex_imm",
+          "direction": "output",
+          "width": 32,
+          "description": "Immediate to EX"
+        },
+        {
+          "name": "ex_rd_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Destination register address to EX"
+        },
+        {
+          "name": "ex_pc",
+          "direction": "output",
+          "width": 32,
+          "description": "PC to EX"
+        },
+        {
+          "name": "ex_alu_src",
+          "direction": "output",
+          "width": 1,
+          "description": "ALU source select to EX"
+        },
+        {
+          "name": "ex_alu_op",
+          "direction": "output",
+          "width": 4,
+          "description": "ALU operation code to EX"
+        },
+        {
+          "name": "ex_mem_read",
+          "direction": "output",
+          "width": 1,
+          "description": "Load enable to EX"
+        },
+        {
+          "name": "ex_mem_write",
+          "direction": "output",
+          "width": 1,
+          "description": "Store enable to EX"
+        },
+        {
+          "name": "ex_funct3",
+          "direction": "output",
+          "width": 3,
+          "description": "funct3 to EX"
+        },
+        {
+          "name": "ex_reg_write",
+          "direction": "output",
+          "width": 1,
+          "description": "Register write enable to EX"
+        },
+        {
+          "name": "ex_wb_sel",
+          "direction": "output",
+          "width": 2,
+          "description": "Write-back select to EX"
+        },
+        {
+          "name": "ex_branch",
+          "direction": "output",
+          "width": 1,
+          "description": "Branch flag to EX"
+        },
+        {
+          "name": "ex_jump",
+          "direction": "output",
+          "width": 1,
+          "description": "JAL flag to EX"
+        },
+        {
+          "name": "ex_jr",
+          "direction": "output",
+          "width": 1,
+          "description": "JALR flag to EX"
+        },
+        {
+          "name": "ex_valid",
+          "direction": "output",
+          "width": 1,
+          "description": "Valid to EX"
+        }
+      ],
+      "functionality": "Registers all ID stage outputs (control signals, register addresses/data, immediate, PC, and valid) and makes them available to the EX stage. On reset, clears all registers. On flush, the valid bit is cleared to invalidate the instruction (effectively a bubble). No stall input; stalling is managed in earlier pipeline stages.",
+      "dependencies": []
+    },
+    {
+      "module_name": "ex_mem_reg",
+      "type": "pipeline_register",
+      "description": "Pipeline register between EX and MEM stages",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "flush",
+          "direction": "input",
+          "width": 1,
+          "description": "Flush signal"
+        },
+        {
+          "name": "ex_alu_result",
+          "direction": "input",
+          "width": 32,
+          "description": "ALU result from EX"
+        },
+        {
+          "name": "ex_mem_wdata",
+          "direction": "input",
+          "width": 32,
+          "description": "Store data from EX"
+        },
+        {
+          "name": "ex_rd_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Destination register address from EX"
+        },
+        {
+          "name": "ex_mem_read",
+          "direction": "input",
+          "width": 1,
+          "description": "Load enable from EX"
+        },
+        {
+          "name": "ex_mem_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Store enable from EX"
+        },
+        {
+          "name": "ex_funct3",
+          "direction": "input",
+          "width": 3,
+          "description": "funct3 from EX"
+        },
+        {
+          "name": "ex_reg_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Register write enable from EX"
+        },
+        {
+          "name": "ex_wb_sel",
+          "direction": "input",
+          "width": 2,
+          "description": "Write-back select from EX"
+        },
+        {
+          "name": "ex_valid",
+          "direction": "input",
+          "width": 1,
+          "description": "Valid from EX"
+        },
+        {
+          "name": "mem_alu_result",
+          "direction": "output",
+          "width": 32,
+          "description": "ALU result to MEM"
+        },
+        {
+          "name": "mem_wdata",
+          "direction": "output",
+          "width": 32,
+          "description": "Store data to MEM"
+        },
+        {
+          "name": "mem_rd_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Destination register address to MEM"
+        },
+        {
+          "name": "mem_read",
+          "direction": "output",
+          "width": 1,
+          "description": "Load enable to MEM"
+        },
+        {
+          "name": "mem_write",
+          "direction": "output",
+          "width": 1,
+          "description": "Store enable to MEM"
+        },
+        {
+          "name": "mem_funct3",
+          "direction": "output",
+          "width": 3,
+          "description": "funct3 to MEM"
+        },
+        {
+          "name": "mem_reg_write",
+          "direction": "output",
+          "width": 1,
+          "description": "Register write enable to MEM"
+        },
+        {
+          "name": "mem_wb_sel",
+          "direction": "output",
+          "width": 2,
+          "description": "Write-back select to MEM"
+        },
+        {
+          "name": "mem_valid",
+          "direction": "output",
+          "width": 1,
+          "description": "Valid to MEM"
+        }
+      ],
+      "functionality": "Captures ALU result, store data, destination register, and memory/control signals from the EX stage. On reset, clears outputs. On flush, the valid bit is cleared to insert a bubble. No stall input; data passes on every clock edge (unless flushed).",
+      "dependencies": []
+    },
+    {
+      "module_name": "mem_wb_reg",
+      "type": "pipeline_register",
+      "description": "Pipeline register between MEM and WB stages",
+      "ports": [
+        {
+          "name": "clk",
+          "direction": "input",
+          "width": 1,
+          "description": "Clock"
+        },
+        {
+          "name": "rst_n",
+          "direction": "input",
+          "width": 1,
+          "description": "Active-low reset"
+        },
+        {
+          "name": "flush",
+          "direction": "input",
+          "width": 1,
+          "description": "Flush signal"
+        },
+        {
+          "name": "mem_rdata",
+          "direction": "input",
+          "width": 32,
+          "description": "Load data from MEM (aligned/sign-extended)"
+        },
+        {
+          "name": "mem_alu_out",
+          "direction": "input",
+          "width": 32,
+          "description": "ALU result passthrough from MEM"
+        },
+        {
+          "name": "mem_rd_addr",
+          "direction": "input",
+          "width": 5,
+          "description": "Destination register address from MEM"
+        },
+        {
+          "name": "mem_reg_write",
+          "direction": "input",
+          "width": 1,
+          "description": "Register write enable from MEM"
+        },
+        {
+          "name": "mem_wb_sel",
+          "direction": "input",
+          "width": 2,
+          "description": "Write-back select from MEM"
+        },
+        {
+          "name": "mem_valid",
+          "direction": "input",
+          "width": 1,
+          "description": "Valid from MEM"
+        },
+        {
+          "name": "wb_mem_rdata",
+          "direction": "output",
+          "width": 32,
+          "description": "Load data to WB"
+        },
+        {
+          "name": "wb_alu_result",
+          "direction": "output",
+          "width": 32,
+          "description": "ALU result to WB"
+        },
+        {
+          "name": "wb_rd_addr",
+          "direction": "output",
+          "width": 5,
+          "description": "Destination register address to WB"
+        },
+        {
+          "name": "wb_reg_write",
+          "direction": "output",
+          "width": 1,
+          "description": "Register write enable to WB"
+        },
+        {
+          "name": "wb_wb_sel",
+          "direction": "output",
+          "width": 2,
+          "description": "Write-back select to WB"
+        },
+        {
+          "name": "wb_valid",
+          "direction": "output",
+          "width": 1,
+          "description": "Valid to WB"
+        }
+      ],
+      "functionality": "Registers the MEM stage outputs (load data, ALU result, destination register, and write-back control signals). On reset, clears registers. On flush, valid is cleared to prevent write-back. Provides synchronous transition of data to the WB stage.",
+      "dependencies": []
+    }
+  ],
+  "stage": "spec_analysis",
+  "timestamp": "2026-05-10T20:26:32.869481"
+}

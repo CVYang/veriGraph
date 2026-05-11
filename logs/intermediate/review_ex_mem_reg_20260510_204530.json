@@ -1,0 +1,15 @@
+{
+  "module_name": "ex_mem_reg",
+  "passed": true,
+  "issues": [
+    {
+      "severity": "low",
+      "line": null,
+      "description": "On flush, all output bits are cleared, but the specification only requires the valid bit to be cleared to insert a bubble. Clearing the entire register defeats the power-saving benefit of a bubble and may add unnecessary toggling. It does not cause functional failure, but it is not strictly necessary and deviates from the spirit of the specification.",
+      "fix_suggestion": "Modify the flush branch to only assign mem_valid <= 1'b0; and leave all other outputs unchanged (i.e., do not assign them, allowing them to retain their previous state). The pipeline bubble is fully defined by valid=0; data bits are don't-care and should be kept stable to reduce dynamic power."
+    }
+  ],
+  "summary": "The RTL code is functionally correct and synthesizable. The only minor concern is that flush clears all outputs instead of just the valid bit, which is a low‑impact design choice that may slightly increase power consumption. No critical or high‑severity issues were found.",
+  "stage": "review_ex_mem_reg",
+  "timestamp": "2026-05-10T20:45:30.430480"
+}

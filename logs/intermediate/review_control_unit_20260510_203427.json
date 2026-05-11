@@ -1,0 +1,21 @@
+{
+  "module_name": "control_unit",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "critical",
+      "line": 94,
+      "description": "LUI instruction (opcode 0110111) does not set alu_src to 1. LUI loads a 20-bit immediate into the destination register, which requires the ALUs second operand to be the immediate value. Without alu_src=1, the ALU uses the register file output (rs2) as the second operand, producing an incorrect result.",
+      "fix_suggestion": "Add 'alu_src = 1'b1;' inside the LUI case block (after the begin) to select the immediate operand."
+    },
+    {
+      "severity": "medium",
+      "line": 106,
+      "description": "The control unit does not decode the SYSTEM opcode (1110011) used by ECALL and EBREAK instructions. Although these may be handled as exceptions, the specification requires support for all 37 RV32I instructions, which include ECALL and EBREAK. The default case leaves all control signals deasserted, which could lead to incomplete exception handling.",
+      "fix_suggestion": "Add a case for opcode 7'b1110011 to generate appropriate trap/exception signals, or at least document why these instructions are intentionally not decoded. If the design relies on external exception detection, ensure the default behavior is safe."
+    }
+  ],
+  "summary": "The control unit correctly decodes most RV32I instructions with proper default assignments, avoiding latch inference. However, a critical bug exists in the LUI decoding where the ALU source select signal is not asserted, causing LUI to malfunction. Additionally, ECALL/EBREAK instructions are not decoded, which may compromise full ISA compliance. Overall, the module requires the LUI fix to be functionally correct.",
+  "stage": "review_control_unit",
+  "timestamp": "2026-05-10T20:34:27.843327"
+}

@@ -1,0 +1,15 @@
+{
+  "module_name": "if_id_reg",
+  "passed": true,
+  "issues": [
+    {
+      "severity": "low",
+      "line": 22,
+      "description": "Explicit self-assignment during stall ('id_pc <= id_pc', 'id_instr <= id_instr', 'id_valid <= id_valid') is unnecessary. Registers inherently hold their values when not loaded, so these statements cause unnecessary toggling and do not affect functionality.",
+      "fix_suggestion": "Remove the 'else if (stall)' branch entirely, or replace the self-assignments with comments explaining the stall behavior. The default behavior of a register will maintain the values when stalled."
+    }
+  ],
+  "summary": "The if_id_reg module is well-designed and correctly implements a pipeline register with proper synchronous reset (active low), flush, and stall functionality. All outputs are properly registered and the priority order is correct (reset > flush > stall > normal). Port declarations are correct with appropriate widths. The explicit self-assignments during stall are functionally correct but unnecessary and could be optimized for cleaner code.",
+  "stage": "review_if_id_reg",
+  "timestamp": "2026-05-10T16:44:05.057352"
+}

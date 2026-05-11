@@ -1,0 +1,147 @@
+{
+  "module_name": "mem_stage",
+  "type": "pipeline_stage",
+  "description": "Memory access stage - load/store via DMEM",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "mem_alu_result",
+      "direction": "input",
+      "width": 32,
+      "description": "ALU result from EX/MEM register (address for load/store)"
+    },
+    {
+      "name": "mem_wdata",
+      "direction": "input",
+      "width": 32,
+      "description": "Store data from EX/MEM register"
+    },
+    {
+      "name": "mem_rd_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Destination register address from EX/MEM"
+    },
+    {
+      "name": "mem_read",
+      "direction": "input",
+      "width": 1,
+      "description": "Load enable from EX/MEM"
+    },
+    {
+      "name": "mem_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Store enable from EX/MEM"
+    },
+    {
+      "name": "mem_funct3",
+      "direction": "input",
+      "width": 3,
+      "description": "funct3 from EX/MEM (specifies load/store size/extension)"
+    },
+    {
+      "name": "mem_reg_write",
+      "direction": "input",
+      "width": 1,
+      "description": "Register write enable from EX/MEM"
+    },
+    {
+      "name": "mem_wb_sel",
+      "direction": "input",
+      "width": 2,
+      "description": "Write-back select from EX/MEM"
+    },
+    {
+      "name": "mem_valid",
+      "direction": "input",
+      "width": 1,
+      "description": "Valid bit from EX/MEM"
+    },
+    {
+      "name": "dmem_addr",
+      "direction": "output",
+      "width": 32,
+      "description": "Data memory address"
+    },
+    {
+      "name": "dmem_wdata",
+      "direction": "output",
+      "width": 32,
+      "description": "Data memory write data"
+    },
+    {
+      "name": "dmem_rdata",
+      "direction": "input",
+      "width": 32,
+      "description": "Data memory read data"
+    },
+    {
+      "name": "dmem_req",
+      "direction": "output",
+      "width": 1,
+      "description": "Data memory request"
+    },
+    {
+      "name": "dmem_we",
+      "direction": "output",
+      "width": 1,
+      "description": "Data memory write enable"
+    },
+    {
+      "name": "dmem_be",
+      "direction": "output",
+      "width": 4,
+      "description": "Data memory byte enable"
+    },
+    {
+      "name": "mem_rdata",
+      "direction": "output",
+      "width": 32,
+      "description": "Load data (aligned and sign-extended) to MEM/WB"
+    },
+    {
+      "name": "mem_alu_out",
+      "direction": "output",
+      "width": 32,
+      "description": "ALU result passthrough to MEM/WB"
+    },
+    {
+      "name": "mem_rd_addr_out",
+      "direction": "output",
+      "width": 5,
+      "description": "Destination register address to MEM/WB"
+    },
+    {
+      "name": "mem_reg_write_out",
+      "direction": "output",
+      "width": 1,
+      "description": "Register write enable to MEM/WB"
+    },
+    {
+      "name": "mem_wb_sel_out",
+      "direction": "output",
+      "width": 2,
+      "description": "Write-back select to MEM/WB"
+    },
+    {
+      "name": "mem_valid_out",
+      "direction": "output",
+      "width": 1,
+      "description": "Valid bit to MEM/WB"
+    }
+  ],
+  "functionality": "Handles all data memory operations. For loads (mem_read=1), sends the ALU result as address to DMEM, captures read data, then performs alignment and sign-extension according to mem_funct3 (LB, LH, LW, LBU, LHU). For stores (mem_write=1), sends address and write data with appropriate byte enable derived from mem_funct3 (SB, SH, SW). The ALU result is passed through to the MEM/WB register alongside the load result, destination register, and control signals for write-back.",
+  "dependencies": []
+}

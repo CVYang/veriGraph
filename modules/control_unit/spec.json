@@ -1,0 +1,87 @@
+{
+  "module_name": "control_unit",
+  "type": "control",
+  "description": "Decode instruction and generate control signals",
+  "ports": [
+    {
+      "name": "instr",
+      "direction": "input",
+      "width": 32,
+      "description": "32-bit instruction"
+    },
+    {
+      "name": "alu_src",
+      "direction": "output",
+      "width": 1,
+      "description": "ALU source select: 0=rs2, 1=imm"
+    },
+    {
+      "name": "alu_op",
+      "direction": "output",
+      "width": 4,
+      "description": "ALU operation code"
+    },
+    {
+      "name": "mem_read",
+      "direction": "output",
+      "width": 1,
+      "description": "Load enable"
+    },
+    {
+      "name": "mem_write",
+      "direction": "output",
+      "width": 1,
+      "description": "Store enable"
+    },
+    {
+      "name": "reg_write",
+      "direction": "output",
+      "width": 1,
+      "description": "Register file write enable"
+    },
+    {
+      "name": "wb_sel",
+      "direction": "output",
+      "width": 2,
+      "description": "Write-back select: 00=ALU, 01=MEM, 10=PC+4"
+    },
+    {
+      "name": "branch",
+      "direction": "output",
+      "width": 1,
+      "description": "Is branch (B-type) instruction"
+    },
+    {
+      "name": "jump",
+      "direction": "output",
+      "width": 1,
+      "description": "Is JAL (J-type) instruction"
+    },
+    {
+      "name": "jr",
+      "direction": "output",
+      "width": 1,
+      "description": "Is JALR (I-type) instruction"
+    },
+    {
+      "name": "is_load",
+      "direction": "output",
+      "width": 1,
+      "description": "Is load instruction"
+    },
+    {
+      "name": "is_store",
+      "direction": "output",
+      "width": 1,
+      "description": "Is store instruction"
+    },
+    {
+      "name": "funct3",
+      "direction": "output",
+      "width": 3,
+      "description": "funct3 field from instruction"
+    }
+  ],
+  "functionality": "Combinationally decodes the 32-bit RISC-V instruction to generate all datapath control signals. Identifies instruction type (R, I, S, B, U, J) from opcode and funct3/funct7, and produces appropriate ALU operation code, register write enable, memory enable signals, branch/jump flags, and write-back select. Supports all 37 RV32I instructions.",
+  "dependencies": []
+}

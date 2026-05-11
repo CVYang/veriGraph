@@ -1,0 +1,33 @@
+{
+  "module_name": "hazard_unit",
+  "passed": false,
+  "issues": [
+    {
+      "severity": "critical",
+      "line": 70,
+      "description": "Forwarding logic only compares source registers with MEM and WB stage destination registers, ignoring the EX stage completely. The specification explicitly requires comparing with EX, MEM, and WB stages. This omission means that when an instruction in EX writes a register that the next instruction in ID/EX reads, no forwarding or stall is generated, leading to a RAW hazard and incorrect execution. Additionally, the module lacks an input for EX stage result (ex_result), preventing any EX forwarding from being added.",
+      "fix_suggestion": "Add an input 'ex_result' and incorporate EX stage comparison: if (ex_reg_write && (ex_rd_addr != 0) && (id_rs1_addr == ex_rd_addr)) fwd_alu_a = 2'b11; similarly for rs2. Define the forwarding priority (EX typically highest) and ensure the forwarding unit is updated. Alternatively, if EX result is not forwardable until MEM, generate a stall similar to load-use for such dependencies."
+    },
+    {
+      "severity": "high",
+      "line": 60,
+      "description": "flush_id is asserted for jump_taken as well as branch_taken. When a jump is in ID (jump_taken), the jump instruction itself is in the ID stage. Flushing ID would incorrectly discard the jump instruction, preventing it from executing and updating the PC. Only the IF stage should be flushed for an ID‑stage jump.",
+      "fix_suggestion": "Change flush_id assignment to: assign flush_id = branch_taken;  // flush wrong-path instruction after a taken branch. For jump_taken, keep flush_id low unless the jump is handled differently. Alternatively, use a signal indicating whether the jump is in ID or EX to decide flushing."
+    },
+    {
+      "severity": "medium",
+      "line": 63,
+      "description": "flush_ex is hardwired to 0, but the specification states 'Also flushes EX if necessary.' In some control hazard scenarios (e.g., a mispredicted branch that has entered EX), flushing the EX stage may be required to prevent incorrect state updates. The current design never flushes EX, potentially leaving wrong-path instructions in EX.",
+      "fix_suggestion": "Determine the condition under which EX must be flushed (e.g., branch mispredict after a late‑branch resolution) and add the corresponding logic. If not needed, comment clearly why."
+    },
+    {
+      "severity": "low",
+      "line": 70,
+      "description": "When a load‑use stall is active, the ID stage is frozen but the forwarding logic still compares the (stale) id_rs1/id_rs2 addresses with MEM and WB stages. This may generate spurious forwarding select signals, though the EX stage is executing a NOP/bubble, so functionally harmless. It could cause unnecessary toggling.",
+      "fix_suggestion": "Optionally gate the forwarding decisions with !stall_id to reduce switching activity when the pipeline is stalled."
+    }
+  ],
+  "summary": "The hazard_unit module has critical flaws that will cause incorrect execution: it completely misses detection and handling of EX‑stage data hazards and incorrectly flushes the ID stage when a jump is taken. The design does not fully satisfy the specified hazard detection requirements and contains potential control hazard handling issues. Additional improvements like EX stage flush logic and minor signal gating are recommended.",
+  "stage": "review_hazard_unit",
+  "timestamp": "2026-05-10T20:51:36.727896"
+}

@@ -1,0 +1,33 @@
+{
+  "module_name": "reg_file",
+  "passed": true,
+  "issues": [
+    {
+      "severity": "medium",
+      "line": 19,
+      "description": "Read ports (rs1_data and rs2_data) do not consider the reset signal (rst_n). During an active asynchronous reset (rst_n=0), if write enable (we) is high and the write address matches a read address, the read data may forward the wdata value instead of outputting 0, even though the register file is being cleared. This can lead to non-zero outputs during reset, which may violate downstream expectations.",
+      "fix_suggestion": "Include the reset condition in the combinational read logic. For example: always @(*) begin if (!rst_n) begin rs1_data = 32'h0; rs2_data = 32'h0; end else begin ... end end"
+    },
+    {
+      "severity": "low",
+      "line": 41,
+      "description": "The integer loop variable 'i' is declared inside the always block. While legal in Verilog-2001, some older synthesis tools may not support this and could cause compilation errors.",
+      "fix_suggestion": "Declare 'integer i' at the module level, outside the always block, to ensure broader compatibility."
+    },
+    {
+      "severity": "low",
+      "line": 15,
+      "description": "The wire 'waddr_bits' is redundant and simply aliases 'waddr'. It adds no functional value and may create confusion.",
+      "fix_suggestion": "Remove 'waddr_bits' and use 'waddr' directly in the comparisons."
+    },
+    {
+      "severity": "low",
+      "line": 26,
+      "description": "The bit-select [4:0] on 'rs1_addr' and 'rs2_addr' is unnecessary because these ports are already 5-bit wide. The code works, but it is redundant.",
+      "fix_suggestion": "Use 'rf[rs1_addr]' and 'rf[rs2_addr]' directly without the extra bit-select."
+    }
+  ],
+  "summary": "The register file module meets the basic specification: x0 hardwired to zero, synchronous write with write-enable and address 0 protection, asynchronous read ports, and reset clearing all registers. However, the read logic does not account for the reset state, potentially allowing non-zero write data to be forwarded during reset, which could be a functional issue. Additionally, there are minor style and compatibility recommendations.",
+  "stage": "review_reg_file",
+  "timestamp": "2026-05-10T20:40:01.637307"
+}

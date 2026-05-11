@@ -1,0 +1,63 @@
+{
+  "module_name": "reg_file",
+  "type": "functional_unit",
+  "description": "32 x 32-bit general purpose register file (x0 hardwired to 0)",
+  "ports": [
+    {
+      "name": "clk",
+      "direction": "input",
+      "width": 1,
+      "description": "Clock"
+    },
+    {
+      "name": "rst_n",
+      "direction": "input",
+      "width": 1,
+      "description": "Active-low reset"
+    },
+    {
+      "name": "rs1_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Read address 1"
+    },
+    {
+      "name": "rs2_addr",
+      "direction": "input",
+      "width": 5,
+      "description": "Read address 2"
+    },
+    {
+      "name": "rs1_data",
+      "direction": "output",
+      "width": 32,
+      "description": "Read data 1"
+    },
+    {
+      "name": "rs2_data",
+      "direction": "output",
+      "width": 32,
+      "description": "Read data 2"
+    },
+    {
+      "name": "waddr",
+      "direction": "input",
+      "width": 5,
+      "description": "Write address"
+    },
+    {
+      "name": "wdata",
+      "direction": "input",
+      "width": 32,
+      "description": "Write data"
+    },
+    {
+      "name": "we",
+      "direction": "input",
+      "width": 1,
+      "description": "Write enable"
+    }
+  ],
+  "functionality": "Implements the 32 general-purpose integer registers specified by RV32I. Register x0 is hardwired to zero: reads always return 0, writes to x0 are ignored. Two asynchronous read ports provide rs1_data and rs2_data combinationally from the address on rs1_addr/rs2_addr. The synchronous write port writes wdata to the register at waddr on the rising edge of clk when we is high (and waddr != 0). On reset, all registers (except x0) are cleared to zero.",
+  "dependencies": []
+}

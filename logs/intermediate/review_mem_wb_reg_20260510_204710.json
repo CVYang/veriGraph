@@ -1,0 +1,8 @@
+{
+  "module_name": "mem_wb_reg",
+  "passed": true,
+  "issues": [],
+  "summary": "The module correctly implements a pipeline register with asynchronous reset and flush. All outputs are driven in every branch using non-blocking assignments, no latches or multiple drivers, and widths match. No functional or synthesis issues found.",
+  "stage": "review_mem_wb_reg",
+  "timestamp": "2026-05-10T20:47:10.265941"
+}
